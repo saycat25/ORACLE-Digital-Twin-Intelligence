@@ -61,6 +61,14 @@ def test_legacy_single_tenant_database_is_migrated(tmp_path, monkeypatch):
         now = datetime.now(UTC).isoformat()
         connection.execute(
             text("""
+                INSERT INTO audit_events
+                (id, tenant_id, actor, action, resource_type, resource_id, details_json, created_at)
+                VALUES (1, 'default', 'legacy', 'legacy.created', 'node', '1', '{}', :created_at)
+            """),
+            {"created_at": now},
+        )
+        connection.execute(
+            text("""
                 INSERT INTO infrastructure_nodes
                 (id, name, kind, criticality, description, created_at)
                 VALUES (1, 'legacy-component', 'service', 0.8, '', :created_at)
@@ -111,6 +119,9 @@ def test_legacy_single_tenant_database_is_migrated(tmp_path, monkeypatch):
         assert connection.scalar(
             text("SELECT current_load_units FROM infrastructure_nodes WHERE id = 1")
         ) == 0.0
+        assert connection.scalar(
+            text("SELECT integrity_hash FROM audit_events WHERE id = 1")
+        ) == ""
 
         # Same component name is permitted in another tenant after migration.
         connection.execute(
