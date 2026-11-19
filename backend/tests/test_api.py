@@ -408,3 +408,43 @@ def test_topology_snapshots_capture_each_graph_change_and_are_tenant_scoped():
             headers=headers_b,
         )
         assert foreign.status_code == 404
+
+
+
+def test_capacity_assessment_uses_only_authenticated_tenant_nodes():
+    tenant_a = f"capacity-a-{uuid4().hex}"
+    tenant_b = f"capacity-b-{uuid4().hex}"
+    with TestClient(app) as client:
+        a = client.post(
+            "/api/v1/nodes",
+            headers={"X-Tenant-ID": tenant_a},
+            json={
+                "name": f"capacity-a-{uuid4().hex[:8]}",
+                "kind": "service",
+                "capacity_units": 100,
+                "current_load_units": 85,
+            },
+        )
+        b = client.post(
+            "/api/v1/nodes",
+            headers={"X-Tenant-ID": tenant_b},
+            json={
+                "name": f"capacity-b-{uuid4().hex[:8]}",
+                "kind": "database",
+                "capacity_units": 200,
+                "current_load_units": 25,
+            },
+        )
+        assert a.status_code == b.status_code == 201
+
+        assessment = client.get(
+            "/api/v1/capacity/assessment?demand_multiplier=1.2",
+            headers={"X-Tenant-ID": tenant_a},
+        )
+        assert assessment.status_code == 200
+        result = assessment.json()
+        assert result["components_assessed"] == 1
+        assert result["over_capacity"] == 1
+        assert result["components"][0]["node_id"] == a.json()["id"]
+        assert result["components"][0]["projected_load_units"] == 102.0
+        assert result["components"][0]["utilization_ratio"] == 1.02
