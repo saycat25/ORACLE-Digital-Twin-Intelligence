@@ -41,3 +41,28 @@ class SimulationRecord(Base):
     status: Mapped[str] = mapped_column(String(30), default="completed")
     result_json: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class AuditEvent(Base):
+    __tablename__ = "audit_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(120), index=True, default="default")
+    actor: Mapped[str] = mapped_column(String(120), default="system")
+    action: Mapped[str] = mapped_column(String(80), index=True)
+    resource_type: Mapped[str] = mapped_column(String(80))
+    resource_id: Mapped[str] = mapped_column(String(120), default="")
+    details_json: Mapped[str] = mapped_column(Text, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+
+
+class TelemetrySample(Base):
+    __tablename__ = "telemetry_samples"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(120), index=True, default="default")
+    node_id: Mapped[int] = mapped_column(ForeignKey("infrastructure_nodes.id", ondelete="CASCADE"), index=True)
+    metric: Mapped[str] = mapped_column(String(80), index=True)
+    value: Mapped[float] = mapped_column(Float)
+    unit: Mapped[str] = mapped_column(String(30), default="")
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
