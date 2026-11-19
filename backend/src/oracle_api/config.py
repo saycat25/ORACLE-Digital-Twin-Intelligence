@@ -9,6 +9,11 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     cors_origins: str = "http://localhost:5173"
     ingestion_api_key: str = ""
+    deepseek_api_key: str = ""
+    deepseek_base_url: str = "https://api.deepseek.com"
+    deepseek_model: str = "deepseek-flash"
+    deepseek_timeout_seconds: float = 30.0
+    ai_data_sharing_enabled: bool = False
 
     @property
     def cors_origin_list(self) -> list[str]:
