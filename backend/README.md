@@ -30,6 +30,7 @@ API documentation: http://127.0.0.1:8000/docs
 | POST/GET | /api/v1/telemetry | Ingest and query metric samples |
 | GET | /api/v1/audit | Query audit events (admin only) |
 | GET | /api/v1/audit/export | Download tenant-scoped audit events as JSON (admin only) |
+| GET | /api/v1/audit/verify | Verify event HMAC integrity (admin only) |
 
 ## HTTP metrics and telemetry ingestion
 
@@ -41,7 +42,7 @@ Nodes accept `capacity_units` and `current_load_units`. `GET /api/v1/capacity/as
 
 ## Telemetry ingestion
 
-Set ORACLE_API_KEYS to a semicolon-separated list of API credentials in the format token|tenant-id|role. Supported roles are viewer, operator, admin and ingestor. Send the token with X-API-Key or Authorization: Bearer. The tenant is taken from the credential; an optional X-Tenant-ID must match it. A credential cannot select another tenant.
+Set AUDIT_HMAC_KEY to at least 32 cryptographically random bytes; production startup requires it and uses it to HMAC-sign each audit event. Keep the key outside the database and repository. Existing audit events from before this migration have no digest and are reported as legacy/unverified. Use GET /api/v1/audit/verify to detect changes to signed records.\n\nSet ORACLE_API_KEYS to a semicolon-separated list of API credentials in the format token|tenant-id|role. Supported roles are viewer, operator, admin and ingestor. Send the token with X-API-Key or Authorization: Bearer. The tenant is taken from the credential; an optional X-Tenant-ID must match it. A credential cannot select another tenant.
 
 Viewer: read inventory/topology, simulations and telemetry. Operator: viewer access plus inventory changes, simulations, scenario comparison and AI explanation. Ingestor: read access plus telemetry ingestion. Admin: all operations including audit events.
 
