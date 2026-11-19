@@ -44,7 +44,8 @@ python -m venv .venv
 # Linux/macOS:
 source .venv/bin/activate
 pip install -e ".[dev]"
-alembic upgrade head\nuvicorn oracle_api.main:app --reload
+alembic upgrade head
+uvicorn oracle_api.main:app --reload
 ```
 
 Documentação da API: http://127.0.0.1:8000/docs
