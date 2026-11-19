@@ -1,0 +1,60 @@
+from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+
+NodeKind = Literal["service", "database", "queue", "api", "worker", "cache", "gateway", "other"]
+
+
+class NodeCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=120, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._-]*$")
+    kind: NodeKind
+    criticality: float = Field(default=0.5, ge=0.0, le=1.0)
+    description: str = Field(default="", max_length=2000)
+
+
+class NodeRead(NodeCreate):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    created_at: datetime
+
+
+class EdgeCreate(BaseModel):
+    source_id: int = Field(gt=0)
+    target_id: int = Field(gt=0)
+    criticality: float = Field(default=0.5, ge=0.0, le=1.0)
+    description: str = Field(default="", max_length=2000)
+
+    @model_validator(mode="after")
+    def distinct_nodes(self):
+        if self.source_id == self.target_id:
+            raise ValueError("A dependency cannot reference the same node as source and target.")
+        return self
+
+
+class EdgeRead(EdgeCreate):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+
+
+class SimulationCreate(BaseModel):
+    failed_node_id: int = Field(gt=0)
+    failure_mode: Literal["unavailable", "degraded"] = "unavailable"
+
+
+class ImpactedNode(BaseModel):
+    node_id: int
+    name: str
+    hop_distance: int
+    impact_score: float
+    path_to_failure: list[int]
+
+
+class SimulationResult(BaseModel):
+    simulation_id: int | None = None
+    failed_node_id: int
+    failure_mode: str
+    impacted_nodes: list[ImpactedNode]
+    total_impacted: int
+    methodology: str
