@@ -15,6 +15,7 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 - Basic audit events for component/dependency creation, simulations, and telemetry ingestion.
 - Deterministic comparison of two failure scenarios, including newly impacted/shared nodes and score deltas.
 - Optional DeepSeek explanations for saved simulations, protected by an explicit server-side data-sharing opt-in.
+- Scenario comparison and AI explanation endpoints documented automatically through FastAPI OpenAPI.
 - Operational console for creating components/dependencies and running failure simulations.
 - SQLAlchemy persistence with SQLite by default and PostgreSQL support.
 - Deterministic, explainable dependency-impact engine.
