@@ -32,7 +32,7 @@ API documentation: http://127.0.0.1:8000/docs
 
 ## HTTP metrics and telemetry ingestion
 
-The `/metrics` endpoint exports request totals and duration summaries in Prometheus text format. It is restricted to the admin role. Labels use route templates to avoid exposing request IDs or unbounded URL values.
+The `/metrics` endpoint exports request totals and duration summaries in Prometheus text format. It is restricted to the admin role. Labels use route templates to avoid exposing request IDs or unbounded URL values. HTTP requests also create OpenTelemetry spans. Set `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` to a Collector's OTLP/HTTP traces endpoint to enable export; leave it empty to disable outbound tracing.
 
 ## Telemetry ingestion
 
