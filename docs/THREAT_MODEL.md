@@ -46,7 +46,7 @@ This is a baseline assessment, not an independent security certification.
 | Cross-tenant data access | Credential-bound tenant, scoped API queries and integration tests | Database-level composite tenant constraints, independent penetration testing |
 | Credential theft | Secrets are supplied by environment configuration; browser stores the API key in sessionStorage | Secret-manager integration, key hashing/storage strategy, automatic rotation and revocation |
 | Malicious or oversized input | Pydantic validation and bounded list limits | Request-body limits, rate limiting, fuzzing and load tests |
-| Audit tampering | Write-only application paths and admin-only scoped export | External immutable archive, retention policy and periodic HMAC verification; the HMAC key still requires rotation and protected backup |
+| Audit tampering | Per-event HMAC-SHA256 signatures verified by an admin-only endpoint | External immutable archive, deletion detection, retention policy, key rotation and protected key backup |
 | Database loss/corruption | PostgreSQL volume and migration framework | Automated backup/restore tooling, restore drills and recovery objectives |
 | Dependency or source compromise | pip-audit and CodeQL workflows | SBOM generation, artifact signing and release provenance |
 | External AI data exposure | DeepSeek outbound sharing disabled by default and explicit server opt-in | Organization-level policy approval, provider contractual review and detailed outbound audit |
