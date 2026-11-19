@@ -30,7 +30,8 @@ This is a baseline assessment, not an independent security certification.
 - Production startup fails when the API-key registry is empty.
 - Nodes, edges, simulations, telemetry, audit queries and topology snapshots are filtered by the authenticated tenant.
 - Cross-tenant resource references are rejected by API-level validation and integration tests.
-- Audit reads/exports, HMAC verification and Prometheus metrics require the admin role.\n- Each new audit event is HMAC-SHA256 signed using AUDIT_HMAC_KEY; production startup requires a key of at least 32 bytes. Legacy events remain explicitly unverified.
+- Audit reads/exports, HMAC verification and Prometheus metrics require the admin role.
+- Each new audit event is HMAC-SHA256 signed using AUDIT_HMAC_KEY; production startup requires a key of at least 32 bytes. Legacy events remain explicitly unverified.
 - Telemetry ingestion requires the ingestor or admin role.
 - DeepSeek explanations require both a server API key and explicit data-sharing opt-in; only the selected stored simulation result is sent.
 - OpenTelemetry trace export is disabled unless an OTLP traces endpoint is configured.
