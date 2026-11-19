@@ -89,3 +89,30 @@ class AuditEventRead(BaseModel):
     resource_id: str
     details_json: str
     created_at: datetime
+
+
+class ScenarioSpec(BaseModel):
+    failed_node_id: int = Field(gt=0)
+    failure_mode: Literal["unavailable", "degraded"] = "unavailable"
+
+
+class ScenarioCompareCreate(BaseModel):
+    scenario_a: ScenarioSpec
+    scenario_b: ScenarioSpec
+
+
+class ImpactDelta(BaseModel):
+    node_id: int
+    name: str
+    score_a: float
+    score_b: float
+    delta: float
+
+
+class ScenarioCompareResult(BaseModel):
+    scenario_a: SimulationResult
+    scenario_b: SimulationResult
+    newly_impacted_in_a: list[int]
+    newly_impacted_in_b: list[int]
+    shared_impacted: list[int]
+    impact_score_deltas: list[ImpactDelta]
