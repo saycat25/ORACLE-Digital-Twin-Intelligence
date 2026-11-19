@@ -10,7 +10,7 @@ Do not publish exploitable details in public issues. Contact the repository main
 
 ## Deployment warning
 
-Until authentication, authorization, tenant isolation, secrets management, audit controls, and deployment hardening are implemented and independently reviewed, run only in a trusted development environment with synthetic data. Never expose the development API directly to the public internet.
+Although baseline API-key authentication, role checks and tenant filtering are implemented, the project is not production-certified. OIDC/SSO, managed key lifecycle, tamper-evident audit storage, retention controls, load/penetration testing, backup/restore drills and independent security review remain open. Use a trusted environment and synthetic data until these controls are completed. Never expose development mode directly to the public internet.
 
 
 ## Tenant credentials and roles
