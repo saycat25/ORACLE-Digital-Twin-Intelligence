@@ -10,7 +10,7 @@ Do not publish exploitable details in public issues. Contact the repository main
 
 ## Deployment warning
 
-Although baseline API-key authentication, role checks and tenant filtering are implemented, the project is not production-certified. OIDC/SSO, managed key lifecycle, tamper-evident audit storage, retention controls, load/penetration testing, backup/restore drills and independent security review remain open. Use a trusted environment and synthetic data until these controls are completed. Never expose development mode directly to the public internet.
+CodeQL scans for Python and TypeScript/JavaScript, API security headers and dependency auditing are enabled. Although baseline API-key authentication, role checks and tenant filtering are implemented, the project is not production-certified. OIDC/SSO, managed key lifecycle, tamper-evident audit storage, retention controls, load/penetration testing, backup/restore drills and independent security review remain open. Use a trusted environment and synthetic data until these controls are completed. Never expose development mode directly to the public internet.
 
 
 ## Tenant credentials and roles
