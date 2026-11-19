@@ -8,7 +8,6 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./oracle.db"
     api_prefix: str = "/api/v1"
     cors_origins: str = "http://localhost:5173"
-    ingestion_api_key: str = ""
     api_keys: str = ""
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
