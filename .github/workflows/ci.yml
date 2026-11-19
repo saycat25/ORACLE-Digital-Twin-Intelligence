@@ -22,6 +22,7 @@ jobs:
           cache-dependency-path: backend/pyproject.toml
       - run: pip install -e ".[dev]"
       - run: ruff check .
+      - run: alembic upgrade head
       - run: pytest
 
   frontend:
