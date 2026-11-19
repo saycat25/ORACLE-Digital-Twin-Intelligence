@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import json
 import time
-from datetime import timezone
+from datetime import UTC
 from contextlib import asynccontextmanager
 from typing import Annotated
 
@@ -140,7 +140,7 @@ def metrics_endpoint():
 def audit_integrity_digest(event: AuditEvent) -> str:
     timestamp = event.created_at
     if timestamp.tzinfo is None:
-        timestamp = timestamp.replace(tzinfo=timezone.utc)
+        timestamp = timestamp.replace(tzinfo=UTC)
     payload = {
         "id": event.id,
         "tenant_id": event.tenant_id,
