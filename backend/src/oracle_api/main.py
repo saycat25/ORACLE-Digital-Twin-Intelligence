@@ -140,9 +140,6 @@ def record_audit(
     )
 
 
-@app.get("/health", tags=["operations"])
-
-
 def create_topology_snapshot(session: Session, tenant_id: str, actor: str) -> TopologySnapshot:
     nodes = list(
         session.scalars(
@@ -208,6 +205,7 @@ def create_topology_snapshot(session: Session, tenant_id: str, actor: str) -> To
     return snapshot
 
 
+@app.get("/health", tags=["operations"])
 def health():
     return {"status": "ok", "service": "oracle-api", "version": app.version}
 
