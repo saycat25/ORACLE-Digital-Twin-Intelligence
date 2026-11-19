@@ -16,8 +16,13 @@ def test_oracle_api_keys_environment_alias_is_loaded():
 def test_health_endpoint():
     with TestClient(app) as client:
         response = client.get("/health")
+        nodes = client.get("/api/v1/nodes")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["referrer-policy"] == "no-referrer"
+    assert nodes.headers["cache-control"] == "no-store"
 
 def test_prometheus_metrics_endpoint_returns_request_counters():
     with TestClient(app) as client:
