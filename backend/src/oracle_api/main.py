@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from oracle_api.config import settings
 from oracle_api.db import Base, engine, get_session
-from oracle_api.engine import analyze_impact
+from oracle_api.engine import analyze_impact, assess_capacity
 from oracle_api.observability import record_http_request, render_prometheus_metrics, tracer
 from oracle_api.models import (
     AuditEvent,
@@ -28,6 +28,7 @@ from oracle_api.schemas import (
     AIExplainRequest,
     AIExplainResponse,
     AuditEventRead,
+    CapacityAssessmentResult,
     EdgeCreate,
     EdgeRead,
     NodeCreate,
@@ -342,6 +343,39 @@ def get_topology(tenant_id: TenantId, session: DbSession):
         "nodes": [NodeRead.model_validate(node).model_dump(mode="json") for node in nodes],
         "edges": [EdgeRead.model_validate(edge).model_dump(mode="json") for edge in edges],
     }
+
+
+@app.get(
+    f"{settings.api_prefix}/capacity/assessment",
+    response_model=CapacityAssessmentResult,
+    tags=["capacity"],
+    dependencies=[Depends(require_roles("viewer", "operator", "admin", "ingestor"))],
+)
+def capacity_assessment(
+    tenant_id: TenantId,
+    session: DbSession,
+    demand_multiplier: float = Query(default=1.0, gt=0.0, le=5.0),
+):
+    nodes = [
+        {
+            "id": node.id,
+            "name": node.name,
+            "kind": node.kind,
+            "capacity_units": node.capacity_units,
+            "current_load_units": node.current_load_units,
+        }
+        for node in session.scalars(
+            select(InfrastructureNode).where(InfrastructureNode.tenant_id == tenant_id)
+        )
+    ]
+    components = assess_capacity(nodes, demand_multiplier)
+    return CapacityAssessmentResult(
+        demand_multiplier=demand_multiplier,
+        components_assessed=len(components),
+        over_capacity=sum(item["status"] == "over_capacity" for item in components),
+        warnings=sum(item["status"] == "warning" for item in components),
+        components=components,
+    )
 
 
 @app.post(
