@@ -5,6 +5,7 @@ services:
     environment:
       ORACLE_ENV: ${ORACLE_ENV:-development}
       ORACLE_API_KEYS: ${ORACLE_API_KEYS:-}
+      AUDIT_HMAC_KEY: ${AUDIT_HMAC_KEY:-}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-oracle}:${POSTGRES_PASSWORD:-oracle_dev_only}@db:5432/${POSTGRES_DB:-oracle}
       API_PREFIX: /api/v1
       CORS_ORIGINS: http://localhost:5173
