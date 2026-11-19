@@ -179,6 +179,27 @@ export default function App() {
 
   const nodeName = (id: number) => nodes.find((node) => node.id === id)?.name ?? "#" + id;
 
+  async function exportAudit() {
+    setError("");
+    try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const token = sessionStorage.getItem("oracle-api-key");
+      if (token) headers["X-API-Key"] = token;
+      if (TENANT) headers["X-Tenant-ID"] = TENANT;
+      const response = await fetch(`${API}/api/v1/audit/export`, { headers });
+      if (!response.ok) throw new Error(response.status === 403 ? "A exportação exige o papel admin." : `Falha ao exportar auditoria (HTTP ${response.status}).`);
+      const file = await response.blob();
+      const url = URL.createObjectURL(file);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "oracle-audit-export.json";
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao exportar auditoria.");
+    }
+  }
+
   async function explainWithAI() {
     if (!simulation?.simulation_id) return;
     setAiBusy(true);
@@ -374,7 +395,7 @@ export default function App() {
             </tbody></table></div>}
         </article>
         <article className="panel">
-          <div className="panel-heading"><div><p className="eyebrow">GOVERNANCE</p><h3>Auditoria recente</h3></div></div>
+          <div className="panel-heading"><div><p className="eyebrow">GOVERNANCE</p><h3>Auditoria recente</h3></div><button className="secondary-button export-button" onClick={exportAudit}>Exportar JSON</button></div>
           {audit.length === 0 ? <p className="empty">Nenhum evento registrado.</p> :
             <div className="event-list">{audit.map((event) => <div className="event" key={event.id}><strong>{event.action}</strong><span>{event.resource_type} #{event.resource_id}</span></div>)}</div>}
         </article>
