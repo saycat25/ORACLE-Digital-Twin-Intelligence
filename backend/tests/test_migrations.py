@@ -125,6 +125,17 @@ def test_database_already_at_tenant_migration_receives_snapshot_table(tmp_path, 
         connection.execute(
             text("INSERT INTO alembic_version (version_num) VALUES ('0001_tenant_scoping')")
         )
+        connection.execute(text("""
+            CREATE TABLE infrastructure_nodes (
+                id INTEGER PRIMARY KEY,
+                tenant_id VARCHAR(120) NOT NULL,
+                name VARCHAR(120) NOT NULL,
+                kind VARCHAR(40) NOT NULL,
+                criticality FLOAT NOT NULL,
+                description TEXT NOT NULL,
+                created_at DATETIME NOT NULL
+            )
+        """))
 
     monkeypatch.setattr(settings, "database_url", database_url)
     command.upgrade(Config("alembic.ini"), "head")
