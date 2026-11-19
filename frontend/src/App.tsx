@@ -116,15 +116,18 @@ export default function App() {
       <section className="workspace">
         <article className="panel">
           <div className="panel-heading"><div><p className="eyebrow">INVENTORY</p><h3>Novo componente</h3></div></div>
-          <form className="editor-form" onSubmit={(event) => submit(event, async () => {
-            const form = new FormData(event.currentTarget);
+          <form className="editor-form" onSubmit={(event) => {
+            const formElement = event.currentTarget;
+            return submit(event, async () => {
+            const form = new FormData(formElement);
             await request("/api/v1/nodes", { method: "POST", body: JSON.stringify({
               name: String(form.get("name")),
               kind: String(form.get("kind")),
               criticality: Number(form.get("criticality")),
             }) });
-            event.currentTarget.reset();
-          })}>
+            formElement.reset();
+          });
+          }}>
             <label>Nome<input name="name" required minLength={2} maxLength={120} pattern="[a-zA-Z0-9][a-zA-Z0-9._-]*" placeholder="payments-api" /></label>
             <label>Tipo<select name="kind"><option value="service">Serviço</option><option value="database">Banco de dados</option><option value="queue">Fila</option><option value="api">API</option><option value="worker">Worker</option><option value="cache">Cache</option><option value="gateway">Gateway</option><option value="other">Outro</option></select></label>
             <label>Criticidade<select name="criticality"><option value="0.25">Baixa · 25%</option><option value="0.5" selected>Média · 50%</option><option value="0.75">Alta · 75%</option><option value="1">Crítica · 100%</option></select></label>
@@ -134,14 +137,17 @@ export default function App() {
 
         <article className="panel">
           <div className="panel-heading"><div><p className="eyebrow">DEPENDENCY GRAPH</p><h3>Nova dependência</h3></div></div>
-          <form className="editor-form" onSubmit={(event) => submit(event, async () => {
-            const form = new FormData(event.currentTarget);
+          <form className="editor-form" onSubmit={(event) => {
+          const formElement = event.currentTarget;
+          return submit(event, async () => {
+            const form = new FormData(formElement);
             await request("/api/v1/edges", { method: "POST", body: JSON.stringify({
               source_id: Number(form.get("source_id")),
               target_id: Number(form.get("target_id")),
               criticality: Number(form.get("criticality")),
             }) });
-          })}>
+          });
+          }}>
             <label>Consumidor<select name="source_id" required>{nodes.map((node) => <option key={node.id} value={node.id}>{node.name}</option>)}</select></label>
             <label>Dependência<select name="target_id" required>{nodes.map((node) => <option key={node.id} value={node.id}>{node.name}</option>)}</select></label>
             <label>Criticidade da relação<select name="criticality"><option value="0.5">Média</option><option value="0.75">Alta</option><option value="1">Crítica</option></select></label>
@@ -152,14 +158,17 @@ export default function App() {
 
       <section className="panel">
         <div className="panel-heading"><div><p className="eyebrow">FAILURE LAB</p><h3>Simular indisponibilidade</h3></div></div>
-        <form className="simulation-form" onSubmit={(event) => submit(event, async () => {
-          const form = new FormData(event.currentTarget);
+        <form className="simulation-form" onSubmit={(event) => {
+          const formElement = event.currentTarget;
+          return submit(event, async () => {
+          const form = new FormData(formElement);
           const result = await request<Simulation>("/api/v1/simulations", { method: "POST", body: JSON.stringify({
             failed_node_id: Number(form.get("failed_node_id")),
             failure_mode: String(form.get("failure_mode")),
           }) });
           setSimulation(result);
-        })}>
+        });
+        }}>
           <label>Componente afetado<select name="failed_node_id" required>{nodes.map((node) => <option key={node.id} value={node.id}>{node.name}</option>)}</select></label>
           <label>Modo de falha<select name="failure_mode"><option value="unavailable">Indisponível</option><option value="degraded">Degradado</option></select></label>
           <button disabled={busy || nodes.length === 0 || status !== "API operacional"}>Executar simulação</button>
