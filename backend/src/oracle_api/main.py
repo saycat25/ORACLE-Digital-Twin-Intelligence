@@ -416,6 +416,31 @@ def list_audit_events(
     return list(session.scalars(query))
 
 
+@app.get(
+    f"{settings.api_prefix}/audit/export",
+    tags=["governance"],
+    dependencies=[Depends(require_roles("admin"))],
+)
+def export_audit_events(
+    tenant_id: TenantId,
+    session: DbSession,
+    limit: int = Query(default=1000, ge=1, le=10000),
+):
+    query = (
+        select(AuditEvent)
+        .where(AuditEvent.tenant_id == tenant_id)
+        .order_by(AuditEvent.created_at.desc(), AuditEvent.id.desc())
+        .limit(limit)
+    )
+    events = list(session.scalars(query))
+    payload = [AuditEventRead.model_validate(event).model_dump(mode="json") for event in events]
+    return Response(
+        content=json.dumps(payload, ensure_ascii=False, indent=2),
+        media_type="application/json",
+        headers={"Content-Disposition": 'attachment; filename="oracle-audit-export.json"'},
+    )
+
+
 @app.post(
     f"{settings.api_prefix}/scenarios/compare",
     response_model=ScenarioCompareResult,
