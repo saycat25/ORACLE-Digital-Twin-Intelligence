@@ -2,10 +2,13 @@ from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from oracle_api.config import Settings, settings
 from oracle_api import main as oracle_main
 from oracle_api.main import app
+from oracle_api.db import SessionLocal
+from oracle_api.models import AuditEvent
 
 
 def test_oracle_api_keys_environment_alias_is_loaded():
@@ -450,3 +453,51 @@ def test_capacity_assessment_uses_only_authenticated_tenant_nodes():
         assert result["components"][0]["node_id"] == a.json()["id"]
         assert result["components"][0]["projected_load_units"] == 102.0
         assert result["components"][0]["utilization_ratio"] == 1.02
+
+
+def test_production_startup_requires_audit_hmac_key(monkeypatch):
+    monkeypatch.setattr(settings, "oracle_env", "production")
+    monkeypatch.setattr(settings, "api_keys", "prod-token|tenant-a|admin")
+    monkeypatch.setattr(settings, "audit_hmac_key", "")
+    with pytest.raises(RuntimeError, match="AUDIT_HMAC_KEY"), TestClient(app):
+        pass
+
+
+def test_audit_integrity_hmac_detects_database_tampering(monkeypatch):
+    tenant = f"audit-integrity-{uuid4().hex}"
+    monkeypatch.setattr(settings, "api_keys", f"audit-token|{tenant}|admin")
+    monkeypatch.setattr(settings, "audit_hmac_key", "test-audit-hmac-secret-at-least-32-bytes")
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/api/v1/nodes",
+            headers={"X-API-Key": "audit-token"},
+            json={
+                "name": f"integrity-node-{uuid4().hex[:10]}",
+                "kind": "service",
+            },
+        )
+        assert created.status_code == 201
+
+        headers = {"X-API-Key": "audit-token"}
+        verified = client.get("/api/v1/audit/verify", headers=headers)
+        assert verified.status_code == 200
+        assert verified.json()["algorithm"] == "HMAC-SHA256"
+        assert verified.json()["valid"] is True
+        assert verified.json()["verified"] >= 1
+
+        with SessionLocal() as session:
+            event = session.scalar(
+                select(AuditEvent)
+                .where(AuditEvent.tenant_id == tenant)
+                .order_by(AuditEvent.id.asc())
+            )
+            assert event is not None
+            event.details_json = event.details_json + " tampered"
+            session.commit()
+            tampered_id = event.id
+
+        report = client.get("/api/v1/audit/verify", headers=headers)
+        assert report.status_code == 200
+        assert report.json()["valid"] is False
+        assert tampered_id in report.json()["invalid_event_ids"]
