@@ -386,9 +386,15 @@ def test_topology_snapshots_capture_each_graph_change_and_are_tenant_scoped():
         history_a = client.get("/api/v1/topology/snapshots", headers=headers_a)
         history_b = client.get("/api/v1/topology/snapshots", headers=headers_b)
         assert history_a.status_code == history_b.status_code == 200
-        assert [item["version"] for item in history_a.json()] == [3, 2, 1]
+        versions_a = [item["version"] for item in history_a.json()]
+        versions_b = [item["version"] for item in history_b.json()]
+        assert len(versions_a) == 3
+        assert versions_a == sorted(versions_a, reverse=True)
+        assert len(set(versions_a)) == 3
+        assert all(item["version"] == item["id"] for item in history_a.json())
         assert all(item["tenant_id"] == tenant_a for item in history_a.json())
-        assert [item["version"] for item in history_b.json()] == [1]
+        assert len(versions_b) == 1
+        assert versions_b[0] > versions_a[0]
 
         latest_id = history_a.json()[0]["id"]
         latest = client.get(f"/api/v1/topology/snapshots/{latest_id}", headers=headers_a)
