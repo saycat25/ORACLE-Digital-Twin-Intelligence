@@ -6,7 +6,7 @@ This runbook covers a local Docker Compose deployment. Adapt credentials, storag
 
 1. Copy `.env.example` to `.env`.
 2. Replace every development credential, especially `POSTGRES_PASSWORD` and every token in `ORACLE_API_KEYS`.
-3. Set `ORACLE_ENV=production` and one or more unique `ORACLE_API_KEYS` entries in the form `token|tenant-id|role`.
+3. Set `ORACLE_ENV=production`, `AUDIT_HMAC_KEY` to at least 32 cryptographically random bytes, and one or more unique `ORACLE_API_KEYS` entries in the form `token|tenant-id|role`.
 4. Keep `AI_DATA_SHARING_ENABLED=false` unless the organization has explicitly approved sharing simulation details with DeepSeek.
 5. Leave `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` empty unless an approved Collector is available.
 6. Restrict network exposure to the API and database. Do not publish the database port. Put the API behind TLS and a reverse proxy with request-size and rate limits.
@@ -21,7 +21,7 @@ docker compose ps
 docker compose logs -f api
 ```
 
-The API container applies Alembic migrations before serving requests. Check `GET /health` and the migration version before sending writes. A legacy single-tenant database is assigned to tenant `default` by the first migration; review ownership before enabling real tenant credentials.
+The API container applies Alembic migrations before serving requests. Back up `AUDIT_HMAC_KEY` separately from the database: without the same key, existing HMAC signatures cannot be verified. Check `GET /health` and the migration version before sending writes. A legacy single-tenant database is assigned to tenant `default` by the first migration; review ownership before enabling real tenant credentials.
 
 ## Backup
 
