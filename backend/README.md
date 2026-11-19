@@ -6,6 +6,7 @@ FastAPI service for infrastructure inventory, dependency topology, deterministic
 
 ```bash
 pip install -e ".[dev]"
+alembic upgrade head
 uvicorn oracle_api.main:app --reload
 ```
 
@@ -27,9 +28,13 @@ API documentation: http://127.0.0.1:8000/docs
 
 ## Telemetry ingestion
 
-Set INGESTION_API_KEY to a strong secret to require an X-API-Key header for telemetry writes. Set X-Tenant-ID to label audit and telemetry records; the default is default.
+Set ORACLE_API_KEYS to a semicolon-separated list of API credentials in the format token|tenant-id|role. Supported roles are viewer, operator, admin and ingestor. Send the token with X-API-Key or Authorization: Bearer. The tenant is taken from the credential; an optional X-Tenant-ID must match it. A credential cannot select another tenant.
 
-**Important:** tenant labels do not yet isolate nodes, edges or simulations. This release does not provide enterprise authentication, SSO or RBAC. Do not expose it as a multi-tenant service.
+Viewer: read inventory/topology, simulations and telemetry. Operator: viewer access plus inventory changes, simulations, scenario comparison and AI explanation. Ingestor: read access plus telemetry ingestion. Admin: all operations including audit events.
+
+In development/test mode only, when ORACLE_API_KEYS is empty, requests are treated as an admin in the tenant supplied by X-Tenant-ID (or default). In production, ORACLE_API_KEYS is mandatory and the API refuses to start without it. Do not use development mode on a public deployment.
+
+Run alembic upgrade head before starting the service. The migration assigns existing legacy records to tenant default, then enables tenant-local node names and dependency uniqueness.
 
 ## Optional DeepSeek assistance
 
