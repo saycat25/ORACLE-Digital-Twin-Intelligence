@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Annotated
 import hmac
 
 from fastapi import Depends, Header, HTTPException, status
@@ -47,12 +48,16 @@ def get_principal(
             configured_token, tenant_id, role = parts
             if (
                 configured_token
+                and (token or "").isascii()
                 and hmac.compare_digest(token or "", configured_token)
                 and tenant_id
                 and len(tenant_id) <= 120
                 and role in _ALLOWED_ROLES
             ):
-                if x_tenant_id and not hmac.compare_digest(x_tenant_id.strip(), tenant_id):
+                if x_tenant_id and (
+                    not x_tenant_id.isascii()
+                    or not hmac.compare_digest(x_tenant_id.strip(), tenant_id)
+                ):
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail="The requested tenant does not match the API credential.",
@@ -77,10 +82,13 @@ def get_principal(
     return Principal(tenant_id=tenant_id, role="admin", actor="development")
 
 
+PrincipalDependency = Annotated[Principal, Depends(get_principal)]
+
+
 def require_roles(*roles: str):
     allowed = set(roles)
 
-    def dependency(principal: Principal = Depends(get_principal)) -> Principal:
+    def dependency(principal: PrincipalDependency) -> Principal:
         if principal.role not in allowed:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
