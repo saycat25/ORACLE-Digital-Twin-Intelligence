@@ -10,7 +10,10 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 
 ## Current implementation
 
-- FastAPI REST API for infrastructure nodes, dependency edges, and simulations.
+- FastAPI REST API for infrastructure nodes, dependency edges, topology snapshots, and simulations.
+- Basic telemetry sample ingestion and querying by component and metric.
+- Basic audit events for component/dependency creation, simulations, and telemetry ingestion.
+- Operational console for creating components/dependencies and running failure simulations.
 - SQLAlchemy persistence with SQLite by default and PostgreSQL support.
 - Deterministic, explainable dependency-impact engine.
 - React + TypeScript console starter.
@@ -18,9 +21,11 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 - Pytest and Ruff CI workflow.
 - Portuguese and English documentation.
 
-## Planned enterprise capabilities
+## Limits and next phases
 
-The following are development targets and must not be assumed to exist until implemented and tested: OIDC/SSO, tenant isolation, granular RBAC, immutable audit trail, telemetry ingestion, OpenTelemetry tracing/metrics, temporal topology, AI-assisted explanations, rate limiting, load/security testing, SBOM, and signed releases.
+Telemetry ingestion and the audit trail are implemented at a basic level. When configured, `INGESTION_API_KEY` requires an `X-API-Key` header for telemetry writes. `X-Tenant-ID` currently labels audit and telemetry records only; it does **not** isolate infrastructure nodes, dependency edges, or simulations, and is not an authentication mechanism.
+
+OIDC/SSO, RBAC, true tenant isolation, audit retention/export and tamper protection, OpenTelemetry export, alerting, temporal topology, scenario comparison, capacity models, optional DeepSeek integration, full console workflows, load/security testing, SBOM, signed releases, and backup recovery remain open work. See the [roadmap](docs/ROADMAP.md) for the verified scope.
 
 ## Quick start
 
