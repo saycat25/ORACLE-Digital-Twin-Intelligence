@@ -21,16 +21,16 @@ O ORACLE representa uma infraestrutura como um grafo direcionado. Os nós repres
 - Comparação e análise assistida disponíveis na API documentada em `/docs`.
 - Persistência SQLAlchemy, com SQLite por padrão e suporte a PostgreSQL.
 - Motor determinístico e explicável de análise de impacto.
-- Base de console web em React + TypeScript.
+- Console web com cadastro de componentes/dependências, grafo SVG, simulações simples e comparativas, telemetria, auditoria e conexão por chave de API na sessão.
 - Ambiente de desenvolvimento com Docker Compose.
 - Testes com Pytest e análise estática com Ruff na integração contínua.
 - Documentação em português e inglês.
 
 ## Limites e próximas fases
 
-O isolamento por tenant, o controle de acesso por papéis, a ingestão de telemetria e a trilha de auditoria estão implementados em nível inicial. A variável `INGESTION_API_KEY`, quando configurada, exige `X-API-Key` no endpoint de escrita de telemetria. A assistência DeepSeek exige `DEEPSEEK_API_KEY` e `AI_DATA_SHARING_ENABLED=true`; por padrão, o compartilhamento de dados com provedores externos fica desativado. `X-Tenant-ID` apenas identifica registros de auditoria/telemetria: **não isola** componentes, dependências ou simulações e não é um mecanismo de autenticação.
+O isolamento por tenant, o controle de acesso por papéis, a ingestão de telemetria e a trilha de auditoria estão implementados em nível inicial. As rotas exigem papéis adequados quando `ORACLE_API_KEYS` está configurado; o papel `ingestor` ou `admin` pode enviar telemetria. A assistência DeepSeek exige `DEEPSEEK_API_KEY` e `AI_DATA_SHARING_ENABLED=true`; por padrão, o compartilhamento de dados com provedores externos fica desativado. O tenant é obtido da credencial validada; `X-Tenant-ID`, quando enviado, serve apenas como conferência e valores divergentes são rejeitados.
 
-Ainda faltam OIDC/SSO, provisionamento/rotação/revogação gerenciada de chaves, retenção/exportação e proteção contra adulteração da auditoria, OpenTelemetry, alertas, topologia temporal e modelos de capacidade, integração opcional com DeepSeek além do endpoint de explicação básica, console interativo completo, testes de carga/segurança, SBOM, assinatura de releases e recuperação de backup. Execute `alembic upgrade head` antes de iniciar a API. A migração atribui dados legados ao tenant `default`. Consulte o [roadmap](docs/ROADMAP.md) para o estado atualizado.
+Ainda faltam OIDC/SSO, provisionamento/rotação/revogação gerenciada de chaves, armazenamento de auditoria à prova de adulteração, políticas de retenção, OpenTelemetry, alertas, topologia temporal e modelos de capacidade, histórico administrativo mais completo, testes de carga/penetração, SBOM, assinatura de releases e recuperação de backup. Execute `alembic upgrade head` antes de iniciar a API. A migração atribui dados legados ao tenant `default`. Consulte o [roadmap](docs/ROADMAP.md) para o estado atualizado.
 
 ## Instalação rápida
 
@@ -44,7 +44,7 @@ python -m venv .venv
 # Linux/macOS:
 source .venv/bin/activate
 pip install -e ".[dev]"
-uvicorn oracle_api.main:app --reload
+alembic upgrade head\nuvicorn oracle_api.main:app --reload
 ```
 
 Documentação da API: http://127.0.0.1:8000/docs
