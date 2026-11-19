@@ -14,7 +14,7 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 - Basic telemetry sample ingestion and querying by component and metric.
 - Basic audit events for component/dependency creation, simulations, and telemetry ingestion.
 - Admin-protected Prometheus-compatible HTTP request metrics and optional OpenTelemetry traces with OTLP export.
-- Tenant-scoped JSON audit export restricted to administrators.
+- Tenant-scoped JSON audit export restricted to administrators, plus HMAC-SHA256 event-integrity verification.
 - Automatic, tenant-scoped topology history snapshots on every component/dependency change.
 - Deterministic capacity projections using operator-declared component capacity and current load, with warning and overload thresholds.
 - Deterministic comparison of two failure scenarios, including newly impacted/shared nodes and score deltas.
@@ -32,9 +32,9 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 
 ## Limits and next phases
 
-Tenant-isolated infrastructure records, role-based API authorization, telemetry ingestion and the audit trail are implemented at a baseline level. `ORACLE_API_KEYS` configures tenant-bound API credentials and RBAC roles (`viewer`, `operator`, `ingestor`, `admin`). In production, valid credentials are mandatory and the tenant comes from the matching credential, not from a user-selected tenant header. Development mode allows an unauthenticated local admin only when the API-key registry is empty. DeepSeek assistance requires `DEEPSEEK_API_KEY` and `AI_DATA_SHARING_ENABLED=true`; outbound sharing is disabled by default. `X-Tenant-ID` is an optional consistency check; with configured keys, the credential determines the tenant.
+Tenant-isolated infrastructure records, role-based API authorization, telemetry ingestion and the audit trail are implemented at a baseline level. `AUDIT_HMAC_KEY` must be at least 32 random bytes in production and signs audit events with HMAC-SHA256. `ORACLE_API_KEYS` configures tenant-bound API credentials and RBAC roles (`viewer`, `operator`, `ingestor`, `admin`). In production, valid credentials are mandatory and the tenant comes from the matching credential, not from a user-selected tenant header. Development mode allows an unauthenticated local admin only when the API-key registry is empty. DeepSeek assistance requires `DEEPSEEK_API_KEY` and `AI_DATA_SHARING_ENABLED=true`; outbound sharing is disabled by default. `X-Tenant-ID` is an optional consistency check; with configured keys, the credential determines the tenant.
 
-OIDC/SSO and managed key lifecycle, tamper-evident audit storage and retention policies, alerting/SLOs, richer business-level traces, historical topology replay/diff, capacity-aware failover routing and richer administration, production backup/restore drills and off-site retention, load and penetration testing, and independent security review remain open work. The release workflow can generate signed provenance attestations when a version tag is published; no release artifact is attested until that workflow runs. See the [roadmap](docs/ROADMAP.md) for the verified scope.
+OIDC/SSO and managed key lifecycle, external immutable audit archive and retention policies, alerting/SLOs, richer business-level traces, historical topology replay/diff, capacity-aware failover routing and richer administration, production backup/restore drills and off-site retention, load and penetration testing, and independent security review remain open work. The release workflow can generate signed provenance attestations when a version tag is published; no release artifact is attested until that workflow runs. See the [roadmap](docs/ROADMAP.md) for the verified scope.
 
 ## Quick start
 
