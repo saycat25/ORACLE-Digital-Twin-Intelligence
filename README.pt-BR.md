@@ -31,7 +31,7 @@ O ORACLE representa uma infraestrutura como um grafo direcionado. Os nós repres
 
 O isolamento por tenant, o controle de acesso por papéis, a ingestão de telemetria e a trilha de auditoria estão implementados em nível inicial. As rotas exigem papéis adequados quando `ORACLE_API_KEYS` está configurado; o papel `ingestor` ou `admin` pode enviar telemetria. A assistência DeepSeek exige `DEEPSEEK_API_KEY` e `AI_DATA_SHARING_ENABLED=true`; por padrão, o compartilhamento de dados com provedores externos fica desativado. O tenant é obtido da credencial validada; `X-Tenant-ID`, quando enviado, serve apenas como conferência e valores divergentes são rejeitados.
 
-Ainda faltam OIDC/SSO, provisionamento/rotação/revogação gerenciada de chaves, armazenamento de auditoria à prova de adulteração, políticas de retenção, OpenTelemetry, alertas, reprodução/diff temporal da topologia e modelos de capacidade, histórico administrativo mais completo, testes de carga/penetração, SBOM, assinatura de releases e recuperação de backup. Execute `alembic upgrade head` antes de iniciar a API. A migração atribui dados legados ao tenant `default`. Consulte o [roadmap](docs/ROADMAP.md) para o estado atualizado.
+Ainda faltam OIDC/SSO, provisionamento/rotação/revogação gerenciada de chaves, armazenamento de auditoria à prova de adulteração e políticas de retenção, alertas/SLOs, traces de negócio mais detalhados, reprodução/diff temporal avançado e modelos de capacidade, histórico administrativo mais completo, testes de carga/penetração, SBOM, assinatura de releases e recuperação de backup. Execute `alembic upgrade head` antes de iniciar a API. A migração atribui dados legados ao tenant `default`. Consulte o [roadmap](docs/ROADMAP.md) para o estado atualizado.
 
 ## Instalação rápida
 
@@ -67,7 +67,7 @@ ruff check .
 
 ## Segurança e uso responsável
 
-O simulador atual executa apenas cálculos sobre o grafo; não realiza alterações na infraestrutura. Utilize dados sintéticos. Não conecte esta versão de desenvolvimento a sistemas de produção sem revisão de segurança, autenticação e autorização, isolamento entre organizações, procedimentos de backup/restauração e testes operacionais.
+O simulador atual executa apenas cálculos sobre o grafo; não realiza alterações na infraestrutura. Utilize dados sintéticos. Não conecte esta versão de desenvolvimento a sistemas de produção sem revisão de segurança independente, integração de identidade empresarial (OIDC/SSO), gestão de chaves, trilha de auditoria à prova de adulteração, procedimentos de backup/restauração e testes operacionais.
 
 ## Documentação
 
