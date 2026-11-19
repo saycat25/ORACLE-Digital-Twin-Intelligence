@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
+from oracle_api.config import settings
 from oracle_api.main import app
 
 
@@ -105,3 +106,19 @@ def test_scenario_comparison_reports_impact_differences():
         assert result["impact_score_deltas"][0]["score_a"] > 0
         events = client.get("/api/v1/audit", headers={"X-Tenant-ID": tenant}).json()
         assert "scenario.compared" in {event["action"] for event in events}
+
+
+
+def test_ai_explanation_is_disabled_without_explicit_opt_in(monkeypatch):
+    monkeypatch.setattr(settings, "ai_data_sharing_enabled", False)
+    with TestClient(app) as client:
+        response = client.post("/api/v1/ai/explain", json={"simulation_id": 999999})
+    assert response.status_code == 403
+
+
+def test_ai_explanation_requires_server_side_api_key(monkeypatch):
+    monkeypatch.setattr(settings, "ai_data_sharing_enabled", True)
+    monkeypatch.setattr(settings, "deepseek_api_key", "")
+    with TestClient(app) as client:
+        response = client.post("/api/v1/ai/explain", json={"simulation_id": 999999})
+    assert response.status_code == 503
