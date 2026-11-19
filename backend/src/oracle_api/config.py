@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,7 +9,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./oracle.db"
     api_prefix: str = "/api/v1"
     cors_origins: str = "http://localhost:5173"
-    api_keys: str = ""
+    api_keys: str = Field(default="", validation_alias="ORACLE_API_KEYS")
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-flash"
