@@ -344,3 +344,61 @@ def test_deepseek_explanation_success_is_mocked_and_audited(monkeypatch):
     assert captured["payload"]["model"] == "deepseek-flash"
     assert captured["headers"]["Authorization"] == "Bearer test-deepseek-key"
     assert captured["payload"]["stream"] is False
+
+
+def test_topology_snapshots_capture_each_graph_change_and_are_tenant_scoped():
+    tenant_a = f"history-a-{uuid4().hex}"
+    tenant_b = f"history-b-{uuid4().hex}"
+    headers_a = {"X-Tenant-ID": tenant_a}
+    headers_b = {"X-Tenant-ID": tenant_b}
+
+    with TestClient(app) as client:
+        first = client.post(
+            "/api/v1/nodes",
+            headers=headers_a,
+            json={"name": f"history-a-one-{uuid4().hex[:8]}", "kind": "service"},
+        )
+        second = client.post(
+            "/api/v1/nodes",
+            headers=headers_a,
+            json={"name": f"history-a-two-{uuid4().hex[:8]}", "kind": "database"},
+        )
+        assert first.status_code == second.status_code == 201
+
+        edge = client.post(
+            "/api/v1/edges",
+            headers=headers_a,
+            json={
+                "source_id": first.json()["id"],
+                "target_id": second.json()["id"],
+                "criticality": 0.9,
+            },
+        )
+        assert edge.status_code == 201
+
+        other = client.post(
+            "/api/v1/nodes",
+            headers=headers_b,
+            json={"name": f"history-b-one-{uuid4().hex[:8]}", "kind": "worker"},
+        )
+        assert other.status_code == 201
+
+        history_a = client.get("/api/v1/topology/snapshots", headers=headers_a)
+        history_b = client.get("/api/v1/topology/snapshots", headers=headers_b)
+        assert history_a.status_code == history_b.status_code == 200
+        assert [item["version"] for item in history_a.json()] == [3, 2, 1]
+        assert all(item["tenant_id"] == tenant_a for item in history_a.json())
+        assert [item["version"] for item in history_b.json()] == [1]
+
+        latest_id = history_a.json()[0]["id"]
+        latest = client.get(f"/api/v1/topology/snapshots/{latest_id}", headers=headers_a)
+        assert latest.status_code == 200
+        assert latest.json()["node_count"] == 2
+        assert latest.json()["edge_count"] == 1
+        assert len(latest.json()["edges"]) == 1
+
+        foreign = client.get(
+            f"/api/v1/topology/snapshots/{latest_id}",
+            headers=headers_b,
+        )
+        assert foreign.status_code == 404
