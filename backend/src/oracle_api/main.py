@@ -113,7 +113,7 @@ def run_simulation(payload: SimulationCreate, session: Session = Depends(get_ses
     return result.model_copy(update={"simulation_id": record.id})
 
 
-@app.get(f"{settings.api_prefix}/simulations/{simulation_id}", response_model=SimulationResult)
+@app.get(f"{settings.api_prefix}/simulations/{{simulation_id}}", response_model=SimulationResult)
 def get_simulation(simulation_id: int, session: Session = Depends(get_session)):
     record = session.get(SimulationRecord, simulation_id)
     if record is None:
