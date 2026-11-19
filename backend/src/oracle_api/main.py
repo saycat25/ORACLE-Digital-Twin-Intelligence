@@ -1,5 +1,8 @@
+import hashlib
+import hmac
 import json
 import time
+from datetime import timezone
 from contextlib import asynccontextmanager
 from typing import Annotated
 
@@ -28,6 +31,7 @@ from oracle_api.schemas import (
     AIExplainRequest,
     AIExplainResponse,
     AuditEventRead,
+    AuditIntegrityReport,
     CapacityAssessmentResult,
     EdgeCreate,
     EdgeRead,
@@ -58,8 +62,11 @@ TenantId = Annotated[str, Depends(resolve_tenant)]
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    if settings.oracle_env.lower() in {"production", "prod"} and not settings.api_keys.strip():
-        raise RuntimeError("ORACLE_API_KEYS must be configured in production.")
+    if settings.oracle_env.lower() in {"production", "prod"}:
+        if not settings.api_keys.strip():
+            raise RuntimeError("ORACLE_API_KEYS must be configured in production.")
+        if len(settings.audit_hmac_key.encode("utf-8")) < 32:
+            raise RuntimeError("AUDIT_HMAC_KEY must contain at least 32 bytes in production.")
     Base.metadata.create_all(bind=engine)
     yield
 
@@ -130,6 +137,35 @@ def metrics_endpoint():
     )
 
 
+def audit_integrity_digest(event: AuditEvent) -> str:
+    timestamp = event.created_at
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=timezone.utc)
+    payload = {
+        "id": event.id,
+        "tenant_id": event.tenant_id,
+        "actor": event.actor,
+        "action": event.action,
+        "resource_type": event.resource_type,
+        "resource_id": event.resource_id,
+        "details_json": event.details_json,
+        "created_at": timestamp.isoformat(),
+    }
+    canonical = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    if settings.audit_hmac_key:
+        return hmac.new(
+            settings.audit_hmac_key.encode("utf-8"),
+            canonical,
+            hashlib.sha256,
+        ).hexdigest()
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def record_audit(
     session: Session,
     tenant_id: str,
@@ -139,16 +175,18 @@ def record_audit(
     details: dict | None = None,
     actor: str = "api",
 ) -> None:
-    session.add(
-        AuditEvent(
-            tenant_id=tenant_id,
-            actor=actor,
-            action=action,
-            resource_type=resource_type,
-            resource_id=str(resource_id),
-            details_json=json.dumps(details or {}, sort_keys=True),
-        )
+    event = AuditEvent(
+        tenant_id=tenant_id,
+        actor=actor,
+        action=action,
+        resource_type=resource_type,
+        resource_id=str(resource_id),
+        details_json=json.dumps(details or {}, ensure_ascii=False, sort_keys=True),
+        created_at=utc_now(),
     )
+    session.add(event)
+    session.flush()
+    event.integrity_hash = audit_integrity_digest(event)
 
 
 def create_topology_snapshot(session: Session, tenant_id: str, actor: str) -> TopologySnapshot:
@@ -590,6 +628,43 @@ def list_audit_events(
         query = query.where(AuditEvent.action == action)
     query = query.order_by(AuditEvent.created_at.desc(), AuditEvent.id.desc()).limit(limit)
     return list(session.scalars(query))
+
+
+@app.get(
+    f"{settings.api_prefix}/audit/verify",
+    response_model=AuditIntegrityReport,
+    tags=["governance"],
+    dependencies=[Depends(require_roles("admin"))],
+)
+def verify_audit_integrity(
+    tenant_id: TenantId,
+    session: DbSession,
+    limit: int = Query(default=10000, ge=1, le=10000),
+):
+    query = (
+        select(AuditEvent)
+        .where(AuditEvent.tenant_id == tenant_id)
+        .order_by(AuditEvent.id.asc())
+        .limit(limit)
+    )
+    events = list(session.scalars(query))
+    legacy_ids = [event.id for event in events if not event.integrity_hash]
+    invalid_ids = [
+        event.id
+        for event in events
+        if event.integrity_hash
+        and not hmac.compare_digest(event.integrity_hash, audit_integrity_digest(event))
+    ]
+    algorithm = "HMAC-SHA256" if settings.audit_hmac_key else "SHA256"
+    return AuditIntegrityReport(
+        tenant_id=tenant_id,
+        algorithm=algorithm,
+        checked=len(events),
+        verified=len(events) - len(legacy_ids) - len(invalid_ids),
+        legacy_unverified=len(legacy_ids),
+        invalid_event_ids=invalid_ids,
+        valid=not legacy_ids and not invalid_ids,
+    )
 
 
 @app.get(
