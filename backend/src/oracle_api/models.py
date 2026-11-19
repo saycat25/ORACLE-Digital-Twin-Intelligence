@@ -12,9 +12,13 @@ def utc_now() -> datetime:
 
 class InfrastructureNode(Base):
     __tablename__ = "infrastructure_nodes"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "name", name="uq_tenant_node_name"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    tenant_id: Mapped[str] = mapped_column(String(120), index=True, default="default")
+    name: Mapped[str] = mapped_column(String(120), index=True)
     kind: Mapped[str] = mapped_column(String(40), index=True)
     criticality: Mapped[float] = mapped_column(Float, default=0.5)
     description: Mapped[str] = mapped_column(Text, default="")
@@ -23,9 +27,12 @@ class InfrastructureNode(Base):
 
 class DependencyEdge(Base):
     __tablename__ = "dependency_edges"
-    __table_args__ = (UniqueConstraint("source_id", "target_id", name="uq_dependency_pair"),)
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "source_id", "target_id", name="uq_tenant_dependency_pair"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(120), index=True, default="default")
     source_id: Mapped[int] = mapped_column(ForeignKey("infrastructure_nodes.id", ondelete="CASCADE"))
     target_id: Mapped[int] = mapped_column(ForeignKey("infrastructure_nodes.id", ondelete="CASCADE"))
     criticality: Mapped[float] = mapped_column(Float, default=0.5)
@@ -36,6 +43,7 @@ class SimulationRecord(Base):
     __tablename__ = "simulation_records"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(120), index=True, default="default")
     failed_node_id: Mapped[int] = mapped_column(Integer, index=True)
     failure_mode: Mapped[str] = mapped_column(String(40))
     status: Mapped[str] = mapped_column(String(30), default="completed")
