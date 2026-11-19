@@ -1,0 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+:root{font-family:Manrope,system-ui,sans-serif;color:#e9edf5;background:#080b12;font-synthesis:none;text-rendering:optimizeLegibility}
+*{box-sizing:border-box}body{margin:0;min-width:320px;background:radial-gradient(ellipse at 20% 0%,#17223a 0%,#080b12 48%)}
+.shell{max-width:1120px;margin:0 auto;padding:42px 28px 28px}header{display:flex;align-items:center;gap:14px;border-bottom:1px solid #273247;padding-bottom:24px}
+.brand-mark{width:42px;height:42px;border:1px solid #66e0c0;color:#66e0c0;display:grid;place-items:center;font-weight:800;font-size:24px;border-radius:12px}
+h1{font-size:18px;letter-spacing:.22em;margin:0}.eyebrow{font:11px 'DM Mono',monospace;letter-spacing:.16em;color:#70d9bd;margin:0 0 7px}
+.status{margin-left:auto;color:#9daec4;font:11px 'DM Mono',monospace}.intro{padding:74px 0 46px;max-width:760px}
+h2{font-size:clamp(32px,5vw,54px);line-height:1.08;letter-spacing:-.045em;margin:0 0 18px}.intro>p:last-child{color:#a8b4c7;line-height:1.7;max-width:620px}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}.metrics article,.panel{background:#111824;border:1px solid #263348;border-radius:15px;padding:22px}
+.metrics span,.metrics small{display:block;color:#8e9db2;font:10px 'DM Mono',monospace;letter-spacing:.1em}.metrics strong{display:block;font-size:34px;margin:9px 0 3px}.panel-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+h3{margin:0;font-size:18px}.panel-heading>span{color:#8e9db2;font:11px 'DM Mono',monospace}
+.empty{padding:30px 0;color:#93a2b7}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;text-align:left}th,td{padding:13px;border-bottom:1px solid #263348}th{color:#7f91a9;font:10px 'DM Mono',monospace}td{font-size:13px;color:#dce4ef}
+.error{padding:12px 15px;background:#351c25;border:1px solid #7d394b;border-radius:9px;color:#ffc4cf}
+footer{padding:28px 0;color:#66758b;font:10px 'DM Mono',monospace}
+@media(max-width:650px){.shell{padding:24px 16px}.intro{padding:52px 0 30px}.metrics{grid-template-columns:1fr}.status{font-size:9px}}
