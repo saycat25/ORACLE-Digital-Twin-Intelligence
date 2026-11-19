@@ -490,7 +490,7 @@ export default function App() {
         </article>
       </section>
 
-      <footer>ORACLE · Foundation 0.3.0 · Simulações e snapshots históricos são somente leitura e não executam alterações na infraestrutura. OIDC/SSO e revisão de produção permanecem pendentes.</footer>
+      <footer>ORACLE · Foundation 0.4.0 · Simulações e snapshots históricos são somente leitura e não executam alterações na infraestrutura. OIDC/SSO e revisão de produção permanecem pendentes.</footer>
     </main>
   );
 }
