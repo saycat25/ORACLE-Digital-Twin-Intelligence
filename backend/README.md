@@ -23,6 +23,7 @@ API documentation: http://127.0.0.1:8000/docs
 | GET | /api/v1/topology | Current graph snapshot (nodes and edges) |
 | GET | /api/v1/topology/snapshots | Tenant-scoped topology version history |
 | GET | /api/v1/topology/snapshots/{id} | Read a historical topology version |
+| GET | /api/v1/capacity/assessment | Project component capacity under a demand multiplier |
 | POST | /api/v1/scenarios/compare | Compare impacted components and impact-score deltas across two failure scenarios |
 | POST | /api/v1/ai/explain | Generate an optional DeepSeek explanation for a saved simulation |
 | POST/GET | /api/v1/simulations, /api/v1/simulations/{id} | Failure impact simulations and result retrieval |
@@ -34,6 +35,10 @@ API documentation: http://127.0.0.1:8000/docs
 
 The `/metrics` endpoint exports request totals and duration summaries in Prometheus text format. It is restricted to the admin role. Labels use route templates to avoid exposing request IDs or unbounded URL values. HTTP requests also create OpenTelemetry spans. Set `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` to a Collector's OTLP/HTTP traces endpoint to enable export; leave it empty to disable outbound tracing.
 
+## Capacity assessment
+
+Nodes accept `capacity_units` and `current_load_units`. `GET /api/v1/capacity/assessment?demand_multiplier=1.25` calculates projected utilization and headroom; values at or above 80% are warnings and values at or above 100% are marked over capacity. This model uses operator-declared capacity/load only. It does not assume automatic failover, traffic routing or unobserved spare capacity.
+
 ## Telemetry ingestion
 
 Set ORACLE_API_KEYS to a semicolon-separated list of API credentials in the format token|tenant-id|role. Supported roles are viewer, operator, admin and ingestor. Send the token with X-API-Key or Authorization: Bearer. The tenant is taken from the credential; an optional X-Tenant-ID must match it. A credential cannot select another tenant.
@@ -42,7 +47,7 @@ Viewer: read inventory/topology, simulations and telemetry. Operator: viewer acc
 
 In development/test mode only, when ORACLE_API_KEYS is empty, requests are treated as an admin in the tenant supplied by X-Tenant-ID (or default). In production, ORACLE_API_KEYS is mandatory and the API refuses to start without it. Do not use development mode on a public deployment.
 
-Every component or dependency creation records a new topology version. Historical snapshots can be listed and read, but are not restored by this release. Run alembic upgrade head before starting the service. The migration assigns existing legacy records to tenant default, then enables tenant-local node names and dependency uniqueness.
+Every component or dependency creation records a new topology version. Historical snapshots can be listed and read, but are not restored by this release. Run `alembic upgrade head` before starting the service; migration `0003_node_capacity` adds capacity fields with conservative defaults for existing nodes. The migration assigns existing legacy records to tenant default, then enables tenant-local node names and dependency uniqueness.
 
 ## Optional DeepSeek assistance
 
