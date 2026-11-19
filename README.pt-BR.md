@@ -23,7 +23,7 @@ O ORACLE representa uma infraestrutura como um grafo direcionado. Os nós repres
 - Motor determinístico e explicável de análise de impacto.
 - Console web com cadastro de componentes/dependências, grafo SVG, simulações simples e comparativas, telemetria, auditoria e conexão por chave de API na sessão.
 - Ambiente de desenvolvimento com Docker Compose.
-- Testes com Pytest e análise estática com Ruff na integração contínua.
+- Pytest, Ruff, pip-audit e workflows CodeQL para análise de segurança contínua.
 - Documentação em português e inglês.
 
 ## Limites e próximas fases
