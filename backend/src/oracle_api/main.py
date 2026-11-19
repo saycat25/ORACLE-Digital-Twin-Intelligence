@@ -1,5 +1,6 @@
 import json
 from contextlib import asynccontextmanager
+from typing import Annotated
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
@@ -64,6 +65,10 @@ def resolve_tenant(x_tenant_id: str = Header(default="default", alias="X-Tenant-
     return tenant
 
 
+DbSession = Annotated[Session, Depends(get_session)]
+TenantId = Annotated[str, Depends(resolve_tenant)]
+
+
 def require_ingestion_key(x_api_key: str | None = Header(default=None, alias="X-API-Key")) -> None:
     expected = settings.ingestion_api_key
     if expected and x_api_key != expected:
@@ -102,8 +107,8 @@ def health():
 )
 def create_node(
     payload: NodeCreate,
-    tenant_id: str = Depends(resolve_tenant),
-    session: Session = Depends(get_session),  # noqa: B008
+    tenant_id: TenantId,
+    session: DbSession,
 ):
     node = InfrastructureNode(**payload.model_dump())
     session.add(node)
@@ -119,7 +124,7 @@ def create_node(
 
 
 @app.get(f"{settings.api_prefix}/nodes", response_model=list[NodeRead])
-def list_nodes(session: Session = Depends(get_session)):
+def list_nodes(session: DbSession):
     return list(session.scalars(select(InfrastructureNode).order_by(InfrastructureNode.id)))
 
 
@@ -131,7 +136,7 @@ def list_nodes(session: Session = Depends(get_session)):
 def create_edge(
     payload: EdgeCreate,
     tenant_id: str = Depends(resolve_tenant),
-    session: Session = Depends(get_session),  # noqa: B008
+    session: Session = Depends(get_session),
 ):
     source = session.get(InfrastructureNode, payload.source_id)
     target = session.get(InfrastructureNode, payload.target_id)
