@@ -57,7 +57,7 @@ jobs:
         with:
           subject-path: |
             dist/*.whl
-            dist/*.tar.gz
+            dist/oracle_digital_twin-*.tar.gz
           sbom-path: dist/oracle-backend-sbom.cdx.json
 
       - name: Generate signed build provenance
