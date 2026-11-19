@@ -24,14 +24,16 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 - Deterministic, explainable dependency-impact engine.
 - React + TypeScript operational console.
 - Docker Compose development environment.
-- Pytest, Ruff, pip-audit and CodeQL security workflows.
+- Pytest, Ruff, pip-audit, CodeQL and CycloneDX SBOM generation in CI.
+- Tag-based release workflow with Python/frontend packages and GitHub/Sigstore provenance attestations.
+- PostgreSQL backup/restore scripts with checksum verification and an operations runbook.
 - Portuguese and English documentation.
 
 ## Limits and next phases
 
 Tenant-isolated infrastructure records, role-based API authorization, telemetry ingestion and the audit trail are implemented at a baseline level. `ORACLE_API_KEYS` configures tenant-bound API credentials and RBAC roles (`viewer`, `operator`, `ingestor`, `admin`). In production, valid credentials are mandatory and the tenant comes from the matching credential, not from a user-selected tenant header. Development mode allows an unauthenticated local admin only when the API-key registry is empty. DeepSeek assistance requires `DEEPSEEK_API_KEY` and `AI_DATA_SHARING_ENABLED=true`; outbound sharing is disabled by default. `X-Tenant-ID` is an optional consistency check; with configured keys, the credential determines the tenant.
 
-OIDC/SSO and managed key lifecycle, tamper-evident audit storage and retention policies, alerting/SLOs, richer business-level traces, historical topology replay/diff and capacity models, richer administration, load and penetration testing, SBOM, signed releases, and backup recovery remain open work. See the [roadmap](docs/ROADMAP.md) for the verified scope.
+OIDC/SSO and managed key lifecycle, tamper-evident audit storage and retention policies, alerting/SLOs, richer business-level traces, historical topology replay/diff and capacity models, richer administration, production backup/restore drills and off-site retention, load and penetration testing, and independent security review remain open work. The release workflow can generate signed provenance attestations when a version tag is published; no release artifact is attested until that workflow runs. See the [roadmap](docs/ROADMAP.md) for the verified scope.
 
 ## Quick start
 
@@ -72,6 +74,7 @@ The current simulator performs graph calculations only; it does not execute chan
 - [Português (Brasil)](README.pt-BR.md)
 - [Security policy](SECURITY.md)
 - [Threat model](docs/THREAT_MODEL.md)
+- [Operations runbook](docs/OPERATIONS.md)
 - [Contributing](CONTRIBUTING.md)
 - [Attribution and license](LICENSE) and [NOTICE](NOTICE)
 
