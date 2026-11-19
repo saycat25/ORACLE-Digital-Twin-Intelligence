@@ -32,7 +32,7 @@ O ORACLE representa uma infraestrutura como um grafo direcionado. Os nós repres
 
 ## Limites e próximas fases
 
-O isolamento por tenant, o controle de acesso por papéis, a ingestão de telemetria e a trilha de auditoria estão implementados em nível inicial. As rotas exigem papéis adequados quando `ORACLE_API_KEYS` está configurado; o papel `ingestor` ou `admin` pode enviar telemetria. A assistência DeepSeek exige `DEEPSEEK_API_KEY` e `AI_DATA_SHARING_ENABLED=true`; por padrão, o compartilhamento de dados com provedores externos fica desativado. O tenant é obtido da credencial validada; `X-Tenant-ID`, quando enviado, serve apenas como conferência e valores divergentes são rejeitados.
+O isolamento por tenant, o controle por papéis, a ingestão de telemetria e a auditoria com assinatura HMAC por evento estão implementados em nível inicial. As rotas exigem papéis adequados quando `ORACLE_API_KEYS` está configurado; o papel `ingestor` ou `admin` pode enviar telemetria. A assistência DeepSeek exige `DEEPSEEK_API_KEY` e `AI_DATA_SHARING_ENABLED=true`; por padrão, o compartilhamento de dados com provedores externos fica desativado. O tenant é obtido da credencial validada; `X-Tenant-ID`, quando enviado, serve apenas como conferência e valores divergentes são rejeitados.
 
 Ainda faltam OIDC/SSO, provisionamento/rotação/revogação gerenciada de chaves, arquivamento externo imutável da auditoria e políticas de retenção, alertas/SLOs, traces de negócio mais detalhados, reprodução/diff temporal avançado e modelos de failover/roteamento sensíveis à capacidade, histórico administrativo mais completo, testes de carga/penetração, simulações periódicas de restauração, retenção externa de backups e revisão de segurança independente. A atestação assinada só será criada quando uma tag de versão acionar o workflow de release. Execute `alembic upgrade head` antes de iniciar a API. A migração atribui dados legados ao tenant `default`. Consulte o [roadmap](docs/ROADMAP.md) para o estado atualizado.
 
@@ -70,7 +70,7 @@ ruff check .
 
 ## Segurança e uso responsável
 
-O simulador atual executa apenas cálculos sobre o grafo; não realiza alterações na infraestrutura. Utilize dados sintéticos. Não conecte esta versão de desenvolvimento a sistemas de produção sem revisão de segurança independente, integração de identidade empresarial (OIDC/SSO), gestão de chaves, trilha de auditoria à prova de adulteração, procedimentos de backup/restauração e testes operacionais.
+O simulador atual executa apenas cálculos sobre o grafo; não realiza alterações na infraestrutura. Utilize dados sintéticos. Não conecte esta versão de desenvolvimento a sistemas de produção sem revisão de segurança independente, integração de identidade empresarial (OIDC/SSO), gestão de chaves, arquivamento imutável de auditoria e detecção de exclusões, procedimentos de backup/restauração e testes operacionais.
 
 ## Documentação
 
