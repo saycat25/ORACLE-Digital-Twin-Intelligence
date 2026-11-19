@@ -8,7 +8,7 @@ A phase is complete only when its implementation, tests, documentation and CI ev
 | 2. Enterprise identity | OIDC/SSO, RBAC, tenant isolation, secure sessions | Not implemented; tenant headers currently label audit/telemetry records only and are not an authorization boundary |
 | 3. Governance | Audit trail, retention, data export, policy controls | Basic append-on-write audit events and tenant-filtered audit reads implemented; immutability, retention and export controls remain open |
 | 4. Observability | OpenTelemetry traces/metrics, telemetry ingestion, health signals | Metric sample ingestion/query and health endpoint implemented; OpenTelemetry export, alerting and service-level signals remain open |
-| 5. Digital twin evolution | Temporal topology, scenario comparison, capacity models | Simulation history exists; topology versioning, scenario comparison and capacity models remain open |
+| 5. Digital twin evolution | Temporal topology, scenario comparison, capacity models | Deterministic comparison of two failure scenarios implemented; topology versioning and capacity models remain open |
 | 6. AI assistance | Optional provider integration, grounded explanations, human review | Not implemented |
 | 7. Web console | Topology visualization, scenario builder, history, administration | Starter console reads inventory; interactive topology and scenario workflows remain open |
 | 8. Production readiness | Threat-model closure, load/security tests, SBOM, signed releases, backup/restore | Not production-ready; CI and operational hardening still require validation |
