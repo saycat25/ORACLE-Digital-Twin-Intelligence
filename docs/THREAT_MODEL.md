@@ -30,7 +30,7 @@ This is a baseline assessment, not an independent security certification.
 - Production startup fails when the API-key registry is empty.
 - Nodes, edges, simulations, telemetry, audit queries and topology snapshots are filtered by the authenticated tenant.
 - Cross-tenant resource references are rejected by API-level validation and integration tests.
-- Audit reads/exports and Prometheus metrics require the admin role.
+- Audit reads/exports, HMAC verification and Prometheus metrics require the admin role.\n- Each new audit event is HMAC-SHA256 signed using AUDIT_HMAC_KEY; production startup requires a key of at least 32 bytes. Legacy events remain explicitly unverified.
 - Telemetry ingestion requires the ingestor or admin role.
 - DeepSeek explanations require both a server API key and explicit data-sharing opt-in; only the selected stored simulation result is sent.
 - OpenTelemetry trace export is disabled unless an OTLP traces endpoint is configured.
@@ -45,7 +45,7 @@ This is a baseline assessment, not an independent security certification.
 | Cross-tenant data access | Credential-bound tenant, scoped API queries and integration tests | Database-level composite tenant constraints, independent penetration testing |
 | Credential theft | Secrets are supplied by environment configuration; browser stores the API key in sessionStorage | Secret-manager integration, key hashing/storage strategy, automatic rotation and revocation |
 | Malicious or oversized input | Pydantic validation and bounded list limits | Request-body limits, rate limiting, fuzzing and load tests |
-| Audit tampering | Write-only application paths and admin-only scoped export | Cryptographic hash chaining or append-only external storage, retention policy and tamper detection |
+| Audit tampering | Write-only application paths and admin-only scoped export | External immutable archive, retention policy and periodic HMAC verification; the HMAC key still requires rotation and protected backup |
 | Database loss/corruption | PostgreSQL volume and migration framework | Automated backup/restore tooling, restore drills and recovery objectives |
 | Dependency or source compromise | pip-audit and CodeQL workflows | SBOM generation, artifact signing and release provenance |
 | External AI data exposure | DeepSeek outbound sharing disabled by default and explicit server opt-in | Organization-level policy approval, provider contractual review and detailed outbound audit |
