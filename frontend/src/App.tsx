@@ -46,6 +46,8 @@ export default function App() {
   const [telemetry, setTelemetry] = useState<Telemetry[]>([]);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
   const [simulation, setSimulation] = useState<Simulation | null>(null);
+  const [aiExplanation, setAiExplanation] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
   const [status, setStatus] = useState("Conectando à API…");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -89,7 +91,25 @@ export default function App() {
     }
   }
 
-  const nodeName = (id: number) => nodes.find((node) => node.id === id)?.name ?? `#${id}`;
+  const nodeName = (id: number) => nodes.find((node) => node.id === id)?.name ?? "#" + id;
+
+  async function explainWithAI() {
+    if (!simulation?.simulation_id) return;
+    setAiBusy(true);
+    setAiExplanation("");
+    setError("");
+    try {
+      const result = await request<{ explanation: string }>("/api/v1/ai/explain", {
+        method: "POST",
+        body: JSON.stringify({ simulation_id: simulation.simulation_id }),
+      });
+      setAiExplanation(result.explanation);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao gerar explicação com IA.");
+    } finally {
+      setAiBusy(false);
+    }
+  }
 
   return (
     <main className="shell">
@@ -176,6 +196,10 @@ export default function App() {
         {simulation && <div className="result">
           <p className="eyebrow">SIMULAÇÃO #{simulation.simulation_id}</p>
           <h4>{simulation.total_impacted} componente(s) potencialmente impactado(s)</h4>
+          <button className="secondary-button" onClick={explainWithAI} disabled={aiBusy}>
+            {aiBusy ? "Analisando…" : "Explicar resultado com DeepSeek"}
+          </button>
+          {aiExplanation && <div className="ai-explanation"><p className="eyebrow">ANÁLISE ASSISTIDA POR IA</p><p>{aiExplanation}</p><small>Confira as conclusões com um especialista antes de tomar decisões operacionais.</small></div>}
           {simulation.impacted_nodes.length === 0 ? <p className="empty">Nenhum consumidor foi identificado no grafo atual.</p> :
             <div className="table-wrap"><table><thead><tr><th>Componente</th><th>Saltos</th><th>Impacto estimado</th></tr></thead><tbody>
               {simulation.impacted_nodes.map((item) => <tr key={item.node_id}><td>{item.name}</td><td>{item.hop_distance}</td><td>{(item.impact_score * 100).toFixed(1)}%</td></tr>)}
