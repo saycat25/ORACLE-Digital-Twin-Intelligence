@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from alembic import command
 from alembic.config import Config
@@ -46,7 +46,7 @@ def test_legacy_single_tenant_database_is_migrated(tmp_path, monkeypatch):
                 created_at DATETIME NOT NULL
             )
         """))
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         connection.execute(
             text("""
                 INSERT INTO infrastructure_nodes
@@ -99,7 +99,7 @@ def test_legacy_single_tenant_database_is_migrated(tmp_path, monkeypatch):
                 (tenant_id, name, kind, criticality, description, created_at)
                 VALUES ('tenant-b', 'legacy-component', 'database', 0.5, '', :created_at)
             """),
-            {"created_at": datetime.now(timezone.utc).isoformat()},
+            {"created_at": datetime.now(UTC).isoformat()},
         )
 
     migrated_engine.dispose()
