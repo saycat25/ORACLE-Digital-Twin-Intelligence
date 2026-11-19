@@ -16,7 +16,7 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 - Admin-protected Prometheus-compatible HTTP request metrics and optional OpenTelemetry traces with OTLP export.
 - Tenant-scoped JSON audit export restricted to administrators.
 - Automatic, tenant-scoped topology history snapshots on every component/dependency change.
-- Deterministic capacity projections using operator-declared component capacity and current load.
+- Deterministic capacity projections using operator-declared component capacity and current load, with warning and overload thresholds.
 - Deterministic comparison of two failure scenarios, including newly impacted/shared nodes and score deltas.
 - Optional DeepSeek explanations for saved simulations, protected by an explicit server-side data-sharing opt-in.
 - Scenario comparison and AI explanation endpoints documented automatically through FastAPI OpenAPI.
@@ -34,7 +34,7 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 
 Tenant-isolated infrastructure records, role-based API authorization, telemetry ingestion and the audit trail are implemented at a baseline level. `ORACLE_API_KEYS` configures tenant-bound API credentials and RBAC roles (`viewer`, `operator`, `ingestor`, `admin`). In production, valid credentials are mandatory and the tenant comes from the matching credential, not from a user-selected tenant header. Development mode allows an unauthenticated local admin only when the API-key registry is empty. DeepSeek assistance requires `DEEPSEEK_API_KEY` and `AI_DATA_SHARING_ENABLED=true`; outbound sharing is disabled by default. `X-Tenant-ID` is an optional consistency check; with configured keys, the credential determines the tenant.
 
-OIDC/SSO and managed key lifecycle, tamper-evident audit storage and retention policies, alerting/SLOs, richer business-level traces, historical topology replay/diff and capacity models, richer administration, production backup/restore drills and off-site retention, load and penetration testing, and independent security review remain open work. The release workflow can generate signed provenance attestations when a version tag is published; no release artifact is attested until that workflow runs. See the [roadmap](docs/ROADMAP.md) for the verified scope.
+OIDC/SSO and managed key lifecycle, tamper-evident audit storage and retention policies, alerting/SLOs, richer business-level traces, historical topology replay/diff, capacity-aware failover routing and richer administration, production backup/restore drills and off-site retention, load and penetration testing, and independent security review remain open work. The release workflow can generate signed provenance attestations when a version tag is published; no release artifact is attested until that workflow runs. See the [roadmap](docs/ROADMAP.md) for the verified scope.
 
 ## Quick start
 
@@ -43,7 +43,7 @@ Requires Python 3.11+.
 ```bash
 cd backend
 python -m venv .venv
-# Windows PowerShell: .venv\\Scripts\\Activate.ps1
+# Windows PowerShell: .venv\Scripts\Activate.ps1
 # Linux/macOS: source .venv/bin/activate
 pip install -e ".[dev]"
 alembic upgrade head
