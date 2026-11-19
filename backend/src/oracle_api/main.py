@@ -26,6 +26,8 @@ from oracle_api.schemas import (
     NodeRead,
     SimulationCreate,
     SimulationResult,
+    ScenarioCompareCreate,
+    ScenarioCompareResult,
     TelemetryCreate,
     TelemetryRead,
 )
@@ -281,3 +283,85 @@ def list_audit_events(
         query = query.where(AuditEvent.action == action)
     query = query.order_by(AuditEvent.created_at.desc(), AuditEvent.id.desc()).limit(limit)
     return list(session.scalars(query))
+
+
+
+@app.post(
+    f"{settings.api_prefix}/scenarios/compare",
+    response_model=ScenarioCompareResult,
+    tags=["scenarios"],
+)
+def compare_scenarios(
+    payload: ScenarioCompareCreate,
+    tenant_id: str = Depends(resolve_tenant),
+    session: Session = Depends(get_session),  # noqa: B008
+):
+    nodes = [
+        {"id": n.id, "name": n.name, "kind": n.kind, "criticality": n.criticality}
+        for n in session.scalars(select(InfrastructureNode))
+    ]
+    node_ids = {node["id"] for node in nodes}
+    for scenario in (payload.scenario_a, payload.scenario_b):
+        if scenario.failed_node_id not in node_ids:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Scenario node {scenario.failed_node_id} was not found.",
+            )
+
+    edges = [
+        {"source_id": e.source_id, "target_id": e.target_id, "criticality": e.criticality}
+        for e in session.scalars(select(DependencyEdge))
+    ]
+
+    def evaluate(spec):
+        impacted = analyze_impact(nodes, edges, spec.failed_node_id, spec.failure_mode)
+        return SimulationResult(
+            failed_node_id=spec.failed_node_id,
+            failure_mode=spec.failure_mode,
+            impacted_nodes=impacted,
+            total_impacted=len(impacted),
+            methodology=(
+                "Reverse dependency traversal; criticality-weighted, "
+                "hop-decayed deterministic score."
+            ),
+        )
+
+    result_a = evaluate(payload.scenario_a)
+    result_b = evaluate(payload.scenario_b)
+    scores_a = {item.node_id: item.impact_score for item in result_a.impacted_nodes}
+    scores_b = {item.node_id: item.impact_score for item in result_b.impacted_nodes}
+    ids_a = set(scores_a)
+    ids_b = set(scores_b)
+    names = {node["id"]: node["name"] for node in nodes}
+    deltas = [
+        {
+            "node_id": node_id,
+            "name": names[node_id],
+            "score_a": scores_a.get(node_id, 0.0),
+            "score_b": scores_b.get(node_id, 0.0),
+            "delta": round(scores_b.get(node_id, 0.0) - scores_a.get(node_id, 0.0), 6),
+        }
+        for node_id in sorted(ids_a | ids_b)
+    ]
+    record_audit(
+        session,
+        tenant_id,
+        "scenario.compared",
+        "scenario",
+        "",
+        {
+            "scenario_a_failed_node_id": payload.scenario_a.failed_node_id,
+            "scenario_b_failed_node_id": payload.scenario_b.failed_node_id,
+            "scenario_a_impacted": len(ids_a),
+            "scenario_b_impacted": len(ids_b),
+        },
+    )
+    session.commit()
+    return ScenarioCompareResult(
+        scenario_a=result_a,
+        scenario_b=result_b,
+        newly_impacted_in_a=sorted(ids_a - ids_b),
+        newly_impacted_in_b=sorted(ids_b - ids_a),
+        shared_impacted=sorted(ids_a & ids_b),
+        impact_score_deltas=deltas,
+    )
