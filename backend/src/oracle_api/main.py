@@ -7,7 +7,7 @@ import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from opentelemetry.trace import Status, StatusCode
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -165,9 +165,6 @@ def create_topology_snapshot(session: Session, tenant_id: str, actor: str) -> To
             .order_by(DependencyEdge.id)
         )
     )
-    latest_version = session.scalar(
-        select(func.max(TopologySnapshot.version)).where(TopologySnapshot.tenant_id == tenant_id)
-    )
     payload = {
         "nodes": [
             {
@@ -195,13 +192,17 @@ def create_topology_snapshot(session: Session, tenant_id: str, actor: str) -> To
     }
     snapshot = TopologySnapshot(
         tenant_id=tenant_id,
-        version=(latest_version or 0) + 1,
+        version=0,
         node_count=len(nodes),
         edge_count=len(edges),
         snapshot_json=json.dumps(payload, ensure_ascii=False, sort_keys=True),
         created_by=actor,
     )
     session.add(snapshot)
+    session.flush()
+    # The database-generated global primary key gives concurrent writes a unique,
+    # monotonically increasing version without a read/modify/write race per tenant.
+    snapshot.version = snapshot.id
     session.flush()
     record_audit(
         session,
