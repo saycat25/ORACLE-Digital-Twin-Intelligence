@@ -74,3 +74,19 @@ class TelemetrySample(Base):
     value: Mapped[float] = mapped_column(Float)
     unit: Mapped[str] = mapped_column(String(30), default="")
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+
+
+class TopologySnapshot(Base):
+    __tablename__ = "topology_snapshots"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "version", name="uq_topology_snapshot_tenant_version"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(120), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+    node_count: Mapped[int] = mapped_column(Integer)
+    edge_count: Mapped[int] = mapped_column(Integer)
+    snapshot_json: Mapped[str] = mapped_column(Text)
+    created_by: Mapped[str] = mapped_column(String(120), default="api")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
