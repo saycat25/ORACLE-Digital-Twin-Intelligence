@@ -51,6 +51,64 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+function TopologyGraph({ nodes, edges }: { nodes: NodeItem[]; edges: EdgeItem[] }) {
+  const columns = Math.max(1, Math.min(4, nodes.length));
+  const rows = Math.max(1, Math.ceil(nodes.length / columns));
+  const width = columns * 235 + 20;
+  const height = rows * 125 + 20;
+  const positions = new Map<number, { x: number; y: number }>();
+  nodes.forEach((node, index) => {
+    positions.set(node.id, {
+      x: 20 + (index % columns) * 235,
+      y: 20 + Math.floor(index / columns) * 125,
+    });
+  });
+
+  return (
+    <div className="graph-frame">
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Grafo de dependências da infraestrutura">
+        <defs>
+          <marker id="oracle-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#70d9bd" />
+          </marker>
+        </defs>
+        {edges.map((edge) => {
+          const source = positions.get(edge.source_id);
+          const target = positions.get(edge.target_id);
+          if (!source || !target) return null;
+          return (
+            <line
+              key={edge.id}
+              x1={source.x + 95}
+              y1={source.y + 35}
+              x2={target.x + 95}
+              y2={target.y + 35}
+              stroke="#70d9bd"
+              strokeOpacity="0.65"
+              strokeWidth="2"
+              markerEnd="url(#oracle-arrow)"
+            />
+          );
+        })}
+        {nodes.map((node) => {
+          const point = positions.get(node.id);
+          if (!point) return null;
+          const label = node.name.length > 21 ? node.name.slice(0, 18) + "…" : node.name;
+          return (
+            <g key={node.id}>
+              <rect x={point.x} y={point.y} width="190" height="70" rx="10" className="graph-node" />
+              <text x={point.x + 13} y={point.y + 29} className="graph-node-label">{label}</text>
+              <text x={point.x + 13} y={point.y + 50} className="graph-node-meta">
+                {node.kind} · {Math.round(node.criticality * 100)}% criticidade
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
 export default function App() {
   const [nodes, setNodes] = useState<NodeItem[]>([]);
   const [edges, setEdges] = useState<EdgeItem[]>([]);
@@ -288,6 +346,15 @@ export default function App() {
             {comparison.impact_score_deltas.map((item) => <tr key={item.node_id}><td>{item.name}</td><td>{(item.score_a * 100).toFixed(1)}%</td><td>{(item.score_b * 100).toFixed(1)}%</td><td>{(item.delta * 100).toFixed(1)} p.p.</td></tr>)}
           </tbody></table></div>
         </div>}
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading"><div><p className="eyebrow">LIVE TOPOLOGY</p><h3>Mapa visual de dependências</h3></div><span>{nodes.length} nós · {edges.length} ligações</span></div>
+        {nodes.length === 0 ? <p className="empty">Adicione componentes para construir o mapa da infraestrutura.</p> :
+          <>
+            <TopologyGraph nodes={nodes} edges={edges} />
+            <p className="graph-caption">As setas apontam do componente consumidor para o serviço ou recurso do qual ele depende.</p>
+          </>}
       </section>
 
       <section className="panel">
