@@ -4,6 +4,14 @@ import type { FormEvent } from "react";
 type NodeItem = { id: number; name: string; kind: string; criticality: number };
 type EdgeItem = { id: number; source_id: number; target_id: number; criticality: number };
 type ImpactedNode = { node_id: number; name: string; hop_distance: number; impact_score: number };
+type ScenarioComparison = {
+  scenario_a: Simulation;
+  scenario_b: Simulation;
+  newly_impacted_in_a: number[];
+  newly_impacted_in_b: number[];
+  shared_impacted: number[];
+  impact_score_deltas: { node_id: number; name: string; score_a: number; score_b: number; delta: number }[];
+};
 type Simulation = {
   simulation_id: number | null;
   failed_node_id: number;
@@ -46,6 +54,7 @@ export default function App() {
   const [telemetry, setTelemetry] = useState<Telemetry[]>([]);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
   const [simulation, setSimulation] = useState<Simulation | null>(null);
+  const [comparison, setComparison] = useState<ScenarioComparison | null>(null);
   const [aiExplanation, setAiExplanation] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
   const [status, setStatus] = useState("Conectando à API…");
@@ -187,6 +196,7 @@ export default function App() {
             failure_mode: String(form.get("failure_mode")),
           }) });
           setSimulation(result);
+          setAiExplanation("");
         });
         }}>
           <label>Componente afetado<select name="failed_node_id" required>{nodes.map((node) => <option key={node.id} value={node.id}>{node.name}</option>)}</select></label>
@@ -205,6 +215,48 @@ export default function App() {
               {simulation.impacted_nodes.map((item) => <tr key={item.node_id}><td>{item.name}</td><td>{item.hop_distance}</td><td>{(item.impact_score * 100).toFixed(1)}%</td></tr>)}
             </tbody></table></div>}
           <small>{simulation.methodology}</small>
+        </div>}
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading"><div><p className="eyebrow">SCENARIO COMPARISON</p><h3>Comparar dois cenários de falha</h3></div></div>
+        <form className="simulation-form compare-form" onSubmit={(event) => {
+          const formElement = event.currentTarget;
+          return submit(event, async () => {
+            const form = new FormData(formElement);
+            const result = await request<ScenarioComparison>("/api/v1/scenarios/compare", {
+              method: "POST",
+              body: JSON.stringify({
+                scenario_a: {
+                  failed_node_id: Number(form.get("failed_a")),
+                  failure_mode: String(form.get("mode_a")),
+                },
+                scenario_b: {
+                  failed_node_id: Number(form.get("failed_b")),
+                  failure_mode: String(form.get("mode_b")),
+                },
+              }),
+            });
+            setComparison(result);
+          });
+        }}>
+          <label>Falha no cenário A<select name="failed_a" required>{nodes.map((node) => <option key={node.id} value={node.id}>{node.name}</option>)}</select></label>
+          <label>Modo A<select name="mode_a"><option value="unavailable">Indisponível</option><option value="degraded">Degradado</option></select></label>
+          <label>Falha no cenário B<select name="failed_b" required>{nodes.map((node) => <option key={node.id} value={node.id}>{node.name}</option>)}</select></label>
+          <label>Modo B<select name="mode_b"><option value="unavailable">Indisponível</option><option value="degraded">Degradado</option></select></label>
+          <button disabled={busy || nodes.length === 0 || status !== "API operacional"}>Comparar cenários</button>
+        </form>
+        {comparison && <div className="result">
+          <div className="comparison-summary">
+            <span><strong>{comparison.scenario_a.total_impacted}</strong> impactos no cenário A</span>
+            <span><strong>{comparison.scenario_b.total_impacted}</strong> impactos no cenário B</span>
+          </div>
+          <p className="comparison-line"><strong>Exclusivos de A:</strong> {comparison.newly_impacted_in_a.map(nodeName).join(", ") || "nenhum"}</p>
+          <p className="comparison-line"><strong>Exclusivos de B:</strong> {comparison.newly_impacted_in_b.map(nodeName).join(", ") || "nenhum"}</p>
+          <p className="comparison-line"><strong>Compartilhados:</strong> {comparison.shared_impacted.map(nodeName).join(", ") || "nenhum"}</p>
+          <div className="table-wrap"><table><thead><tr><th>Componente</th><th>Pontuação A</th><th>Pontuação B</th><th>Diferença B−A</th></tr></thead><tbody>
+            {comparison.impact_score_deltas.map((item) => <tr key={item.node_id}><td>{item.name}</td><td>{(item.score_a * 100).toFixed(1)}%</td><td>{(item.score_b * 100).toFixed(1)}%</td><td>{(item.delta * 100).toFixed(1)} p.p.</td></tr>)}
+          </tbody></table></div>
         </div>}
       </section>
 
