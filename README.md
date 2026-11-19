@@ -13,6 +13,7 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 - FastAPI REST API for infrastructure nodes, dependency edges, topology snapshots, and simulations.
 - Basic telemetry sample ingestion and querying by component and metric.
 - Basic audit events for component/dependency creation, simulations, and telemetry ingestion.
+- Admin-protected Prometheus-compatible HTTP request metrics.
 - Deterministic comparison of two failure scenarios, including newly impacted/shared nodes and score deltas.
 - Optional DeepSeek explanations for saved simulations, protected by an explicit server-side data-sharing opt-in.
 - Scenario comparison and AI explanation endpoints documented automatically through FastAPI OpenAPI.
