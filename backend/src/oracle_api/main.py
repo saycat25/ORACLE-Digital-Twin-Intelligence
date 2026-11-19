@@ -264,11 +264,11 @@ def ingest_telemetry(
 
 @app.get(f"{settings.api_prefix}/telemetry", response_model=list[TelemetryRead], tags=["observability"])
 def list_telemetry(
+    tenant_id: TenantId,
+    session: DbSession,
     node_id: int | None = Query(default=None, gt=0),
     metric: str | None = Query(default=None, min_length=1, max_length=80),
     limit: int = Query(default=100, ge=1, le=1000),
-    tenant_id: TenantId,
-    session: DbSession,
 ):
     query = select(TelemetrySample).where(TelemetrySample.tenant_id == tenant_id)
     if node_id is not None:
@@ -281,10 +281,10 @@ def list_telemetry(
 
 @app.get(f"{settings.api_prefix}/audit", response_model=list[AuditEventRead], tags=["governance"])
 def list_audit_events(
-    limit: int = Query(default=100, ge=1, le=1000),
-    action: str | None = Query(default=None, min_length=1, max_length=80),
     tenant_id: TenantId,
     session: DbSession,
+    limit: int = Query(default=100, ge=1, le=1000),
+    action: str | None = Query(default=None, min_length=1, max_length=80),
 ):
     query = select(AuditEvent).where(AuditEvent.tenant_id == tenant_id)
     if action is not None:
