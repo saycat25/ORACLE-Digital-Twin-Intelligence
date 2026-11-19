@@ -98,7 +98,7 @@ def health():
 def create_node(
     payload: NodeCreate,
     tenant_id: str = Depends(resolve_tenant),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session),  # noqa: B008
 ):
     node = InfrastructureNode(**payload.model_dump())
     session.add(node)
@@ -126,7 +126,7 @@ def list_nodes(session: Session = Depends(get_session)):
 def create_edge(
     payload: EdgeCreate,
     tenant_id: str = Depends(resolve_tenant),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session),  # noqa: B008
 ):
     source = session.get(InfrastructureNode, payload.source_id)
     target = session.get(InfrastructureNode, payload.target_id)
@@ -171,7 +171,7 @@ def get_topology(session: Session = Depends(get_session)):
 def run_simulation(
     payload: SimulationCreate,
     tenant_id: str = Depends(resolve_tenant),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session),  # noqa: B008
 ):
     if session.get(InfrastructureNode, payload.failed_node_id) is None:
         raise HTTPException(status_code=404, detail="Failed node was not found.")
@@ -229,7 +229,7 @@ def get_simulation(simulation_id: int, session: Session = Depends(get_session)):
 def ingest_telemetry(
     payload: TelemetryCreate,
     tenant_id: str = Depends(resolve_tenant),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session),  # noqa: B008
 ):
     if session.get(InfrastructureNode, payload.node_id) is None:
         raise HTTPException(status_code=404, detail="Telemetry node was not found.")
@@ -258,7 +258,7 @@ def list_telemetry(
     metric: str | None = Query(default=None, min_length=1, max_length=80),
     limit: int = Query(default=100, ge=1, le=1000),
     tenant_id: str = Depends(resolve_tenant),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session),  # noqa: B008
 ):
     query = select(TelemetrySample).where(TelemetrySample.tenant_id == tenant_id)
     if node_id is not None:
@@ -274,7 +274,7 @@ def list_audit_events(
     limit: int = Query(default=100, ge=1, le=1000),
     action: str | None = Query(default=None, min_length=1, max_length=80),
     tenant_id: str = Depends(resolve_tenant),
-    session: Session = Depends(get_session),
+    session: Session = Depends(get_session),  # noqa: B008
 ):
     query = select(AuditEvent).where(AuditEvent.tenant_id == tenant_id)
     if action is not None:
