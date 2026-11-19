@@ -225,6 +225,35 @@ def test_api_key_rbac_and_tenant_isolation(monkeypatch):
         assert foreign_simulation_read.status_code == 404
 
 
+def test_audit_export_is_admin_only_and_tenant_scoped():
+    tenant_a = f"audit-export-a-{uuid4().hex}"
+    tenant_b = f"audit-export-b-{uuid4().hex}"
+    with TestClient(app) as client:
+        for tenant, name in ((tenant_a, "event-for-a"), (tenant_b, "event-for-b")):
+            created = client.post(
+                "/api/v1/nodes",
+                headers={"X-Tenant-ID": tenant},
+                json={"name": f"{name}-{uuid4().hex[:8]}", "kind": "service"},
+            )
+            assert created.status_code == 201
+
+        forbidden = client.get(
+            "/api/v1/audit/export",
+            headers={"X-Tenant-ID": tenant_a, "X-API-Key": "viewer-not-admin"},
+        )
+        # In development mode, configured credentials turn on strict authentication.
+        assert forbidden.status_code in {401, 403}
+
+        export = client.get(
+            "/api/v1/audit/export",
+            headers={"X-Tenant-ID": tenant_a},
+        )
+        assert export.status_code == 200
+        assert "attachment;" in export.headers["content-disposition"]
+        assert "event-for-a" in export.text
+        assert "event-for-b" not in export.text
+
+
 def test_invalid_api_key_is_rejected_when_credentials_are_configured(monkeypatch):
     monkeypatch.setattr(settings, "api_keys", "valid-token|tenant-a|viewer")
     with TestClient(app) as client:
