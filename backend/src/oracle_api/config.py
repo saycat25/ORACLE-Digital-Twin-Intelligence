@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     deepseek_model: str = "deepseek-flash"
     deepseek_timeout_seconds: float = 30.0
     ai_data_sharing_enabled: bool = False
+    otel_service_name: str = "oracle-api"
+    otel_exporter_otlp_traces_endpoint: str = Field(default="", validation_alias="OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
 
     @property
     def cors_origin_list(self) -> list[str]:
