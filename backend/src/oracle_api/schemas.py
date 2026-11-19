@@ -58,3 +58,34 @@ class SimulationResult(BaseModel):
     impacted_nodes: list[ImpactedNode]
     total_impacted: int
     methodology: str
+
+
+class TelemetryCreate(BaseModel):
+    node_id: int = Field(gt=0)
+    metric: str = Field(min_length=1, max_length=80, pattern=r"^[a-zA-Z][a-zA-Z0-9_.-]*$")
+    value: float = Field(allow_inf_nan=False)
+    unit: str = Field(default="", max_length=30)
+    observed_at: datetime | None = None
+
+
+class TelemetryRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    tenant_id: str
+    node_id: int
+    metric: str
+    value: float
+    unit: str
+    observed_at: datetime
+
+
+class AuditEventRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    tenant_id: str
+    actor: str
+    action: str
+    resource_type: str
+    resource_id: str
+    details_json: str
+    created_at: datetime
