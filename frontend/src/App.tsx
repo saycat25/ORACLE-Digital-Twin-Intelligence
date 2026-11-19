@@ -128,7 +128,7 @@ export default function App() {
       request<{ status: string }>("/health"),
       request<{ nodes: NodeItem[]; edges: EdgeItem[] }>("/api/v1/topology"),
       request<Telemetry[]>("/api/v1/telemetry?limit=8"),
-      request<AuditEvent[]>("/api/v1/audit?limit=8"),
+      request<AuditEvent[]>("/api/v1/audit?limit=8").catch(() => [] as AuditEvent[]),
     ]);
     setNodes(topology.nodes);
     setEdges(topology.edges);
