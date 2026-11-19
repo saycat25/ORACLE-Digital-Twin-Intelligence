@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator  # noqa: I001
 
 
 NodeKind = Literal["service", "database", "queue", "api", "worker", "cache", "gateway", "other"]
