@@ -12,7 +12,7 @@ All notable ORACLE changes are documented here. This project is under active dev
 - Historical topology snapshot listing and read-only graph inspection.
 - Side-by-side scenario comparison with impacted-node sets and score deltas.
 - Capacity projection from operator-declared capacity/current load and configurable demand multiplier.
-- Basic telemetry ingestion/query, audit trail, admin-only audit JSON export.
+- Basic telemetry ingestion/query, audit trail, admin-only audit JSON export and HMAC-SHA256 integrity verification.
 - Prometheus-compatible HTTP metrics and optional OpenTelemetry OTLP/HTTP spans.
 - Optional DeepSeek simulation explanation with explicit outbound-data opt-in.
 - React console workflows for topology editing, graph visualization, simulations, snapshots, capacity, telemetry and audit.
@@ -22,5 +22,5 @@ All notable ORACLE changes are documented here. This project is under active dev
 ### Security and limitations
 - Production startup requires ORACLE_API_KEYS; development mode without keys remains a local convenience only.
 - The custom OAL 1.0 attribution license is not OSI-approved.
-- OIDC/SSO, managed API-key lifecycle, tamper-evident audit retention, alerts/SLOs, capacity-aware failover routing, load/penetration testing, off-site backup retention, restore drills and independent security review remain incomplete.
+- OIDC/SSO, managed API-key lifecycle, external immutable audit archive and retention policies, alerts/SLOs, capacity-aware failover routing, load/penetration testing, off-site backup retention, restore drills and independent security review remain incomplete.
 - No v0.4.0 release has been published by this changelog entry alone. Release artifacts and Sigstore attestations are created only after a matching version tag triggers the release workflow.
