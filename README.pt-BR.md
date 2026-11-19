@@ -14,7 +14,7 @@ O ORACLE representa uma infraestrutura como um grafo direcionado. Os nós repres
 - Endpoint de ingestão e consulta de amostras de telemetria por componente/métrica.
 - Trilha básica de auditoria para criação de componentes, dependências, simulações e ingestão de telemetria.
 - Métricas HTTP em formato compatível com Prometheus, protegidas pelo papel `admin`, e traces OpenTelemetry opcionais com exportação OTLP.
-- Exportação JSON da auditoria por tenant, restrita ao papel `admin`.
+- Exportação JSON da auditoria por tenant, restrita ao papel `admin`, e verificação de integridade HMAC-SHA256 dos eventos.
 - Exportação da topologia atual como snapshot JSON pela API.
 - Planejamento de capacidade com carga atual, capacidade nominal e projeção por multiplicador de demanda.
 - Histórico temporal por tenant, com snapshots automáticos após cada criação de componente ou dependência e consulta de versões antigas.
@@ -34,7 +34,7 @@ O ORACLE representa uma infraestrutura como um grafo direcionado. Os nós repres
 
 O isolamento por tenant, o controle de acesso por papéis, a ingestão de telemetria e a trilha de auditoria estão implementados em nível inicial. As rotas exigem papéis adequados quando `ORACLE_API_KEYS` está configurado; o papel `ingestor` ou `admin` pode enviar telemetria. A assistência DeepSeek exige `DEEPSEEK_API_KEY` e `AI_DATA_SHARING_ENABLED=true`; por padrão, o compartilhamento de dados com provedores externos fica desativado. O tenant é obtido da credencial validada; `X-Tenant-ID`, quando enviado, serve apenas como conferência e valores divergentes são rejeitados.
 
-Ainda faltam OIDC/SSO, provisionamento/rotação/revogação gerenciada de chaves, armazenamento de auditoria à prova de adulteração e políticas de retenção, alertas/SLOs, traces de negócio mais detalhados, reprodução/diff temporal avançado e modelos de failover/roteamento sensíveis à capacidade, histórico administrativo mais completo, testes de carga/penetração, simulações periódicas de restauração, retenção externa de backups e revisão de segurança independente. A atestação assinada só será criada quando uma tag de versão acionar o workflow de release. Execute `alembic upgrade head` antes de iniciar a API. A migração atribui dados legados ao tenant `default`. Consulte o [roadmap](docs/ROADMAP.md) para o estado atualizado.
+Ainda faltam OIDC/SSO, provisionamento/rotação/revogação gerenciada de chaves, arquivamento externo imutável da auditoria e políticas de retenção, alertas/SLOs, traces de negócio mais detalhados, reprodução/diff temporal avançado e modelos de failover/roteamento sensíveis à capacidade, histórico administrativo mais completo, testes de carga/penetração, simulações periódicas de restauração, retenção externa de backups e revisão de segurança independente. A atestação assinada só será criada quando uma tag de versão acionar o workflow de release. Execute `alembic upgrade head` antes de iniciar a API. A migração atribui dados legados ao tenant `default`. Consulte o [roadmap](docs/ROADMAP.md) para o estado atualizado.
 
 ## Instalação rápida
 
