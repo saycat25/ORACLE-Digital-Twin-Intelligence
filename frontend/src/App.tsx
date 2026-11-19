@@ -22,6 +22,8 @@ type Simulation = {
 };
 type Telemetry = { id: number; node_id: number; metric: string; value: number; unit: string; observed_at: string };
 type AuditEvent = { id: number; action: string; resource_type: string; resource_id: string; created_at: string };
+type TopologySnapshotSummary = { id: number; tenant_id: string; version: number; node_count: number; edge_count: number; created_by: string; created_at: string };
+type TopologySnapshotDetail = TopologySnapshotSummary & { nodes: NodeItem[]; edges: EdgeItem[] };
 
 const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 const TENANT = import.meta.env.VITE_TENANT_ID;
@@ -114,6 +116,9 @@ export default function App() {
   const [edges, setEdges] = useState<EdgeItem[]>([]);
   const [telemetry, setTelemetry] = useState<Telemetry[]>([]);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
+  const [snapshots, setSnapshots] = useState<TopologySnapshotSummary[]>([]);
+  const [snapshotDetail, setSnapshotDetail] = useState<TopologySnapshotDetail | null>(null);
+  const [snapshotBusy, setSnapshotBusy] = useState(false);
   const [simulation, setSimulation] = useState<Simulation | null>(null);
   const [comparison, setComparison] = useState<ScenarioComparison | null>(null);
   const [aiExplanation, setAiExplanation] = useState("");
@@ -124,16 +129,18 @@ export default function App() {
   const [apiCredential, setApiCredential] = useState(() => sessionStorage.getItem("oracle-api-key") ?? "");
 
   const refresh = useCallback(async () => {
-    const [health, topology, samples, events] = await Promise.all([
+    const [health, topology, samples, events, history] = await Promise.all([
       request<{ status: string }>("/health"),
       request<{ nodes: NodeItem[]; edges: EdgeItem[] }>("/api/v1/topology"),
       request<Telemetry[]>("/api/v1/telemetry?limit=8"),
       request<AuditEvent[]>("/api/v1/audit?limit=8").catch(() => [] as AuditEvent[]),
+      request<TopologySnapshotSummary[]>("/api/v1/topology/snapshots?limit=10"),
     ]);
     setNodes(topology.nodes);
     setEdges(topology.edges);
     setTelemetry(samples);
     setAudit(events);
+    setSnapshots(history);
     setStatus(health.status === "ok" ? "API operacional" : "API indisponível");
     setError("");
   }, []);
@@ -178,6 +185,19 @@ export default function App() {
   }
 
   const nodeName = (id: number) => nodes.find((node) => node.id === id)?.name ?? "#" + id;
+
+  async function openSnapshot(snapshotId: number) {
+    setSnapshotBusy(true);
+    setError("");
+    try {
+      const detail = await request<TopologySnapshotDetail>(`/api/v1/topology/snapshots/${snapshotId}`);
+      setSnapshotDetail(detail);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao carregar versão da topologia.");
+    } finally {
+      setSnapshotBusy(false);
+    }
+  }
 
   async function exportAudit() {
     setError("");
@@ -379,6 +399,31 @@ export default function App() {
       </section>
 
       <section className="panel">
+        <div className="panel-heading"><div><p className="eyebrow">TEMPORAL TOPOLOGY</p><h3>Histórico de versões do grafo</h3></div><span>{snapshots.length} versões recentes</span></div>
+        {snapshots.length === 0 ? <p className="empty">O histórico será criado automaticamente quando componentes ou dependências forem cadastrados.</p> :
+          <div className="snapshot-list">
+            {snapshots.map((snapshot) => (
+              <button
+                type="button"
+                key={snapshot.id}
+                className={snapshotDetail?.id === snapshot.id ? "snapshot-item active" : "snapshot-item"}
+                onClick={() => openSnapshot(snapshot.id)}
+                disabled={snapshotBusy}
+              >
+                <strong>Versão {snapshot.version}</strong>
+                <span>{snapshot.node_count} nós · {snapshot.edge_count} ligações</span>
+                <small>{new Date(snapshot.created_at).toLocaleString("pt-BR")}</small>
+              </button>
+            ))}
+          </div>}
+        {snapshotDetail && <div className="snapshot-detail">
+          <p className="eyebrow">SNAPSHOT #{snapshotDetail.id} · VERSÃO {snapshotDetail.version}</p>
+          <p className="graph-caption">Estado histórico somente para consulta. Visualizar uma versão não restaura nem altera a topologia atual.</p>
+          <TopologyGraph nodes={snapshotDetail.nodes} edges={snapshotDetail.edges} />
+        </div>}
+      </section>
+
+      <section className="panel">
         <div className="panel-heading"><div><p className="eyebrow">TOPOLOGY INVENTORY</p><h3>Componentes e dependências</h3></div><span>{nodes.length} nós · {edges.length} relações</span></div>
         {nodes.length === 0 ? <p className="empty">Nenhum componente cadastrado. Adicione o primeiro acima.</p> :
           <div className="table-wrap"><table><thead><tr><th>Nome</th><th>Tipo</th><th>Criticidade</th><th>Dependências</th></tr></thead><tbody>
@@ -401,7 +446,7 @@ export default function App() {
         </article>
       </section>
 
-      <footer>ORACLE · Foundation 0.2.0 · Simulações são análises e não executam alterações na infraestrutura. Isolamento multi-tenant completo ainda não está habilitado.</footer>
+      <footer>ORACLE · Foundation 0.3.0 · Simulações e snapshots históricos são somente leitura e não executam alterações na infraestrutura. OIDC/SSO e revisão de produção permanecem pendentes.</footer>
     </main>
   );
 }
