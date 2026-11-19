@@ -401,8 +401,12 @@ def explain_simulation_with_ai(
     if record is None:
         raise HTTPException(status_code=404, detail="Simulation was not found.")
     simulation_data = json.loads(record.result_json)
+    failed_node = session.get(InfrastructureNode, record.failed_node_id)
     prompt_data = {
-        "failed_node_id": record.failed_node_id,
+        "failed_node": {
+            "id": record.failed_node_id,
+            "name": failed_node.name if failed_node is not None else "unknown",
+        },
         "failure_mode": record.failure_mode,
         "total_impacted": simulation_data.get("total_impacted", 0),
         "impacted_nodes": simulation_data.get("impacted_nodes", []),
