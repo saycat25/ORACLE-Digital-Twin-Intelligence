@@ -42,6 +42,7 @@ python -m venv .venv
 # Windows PowerShell: .venv\\Scripts\\Activate.ps1
 # Linux/macOS: source .venv/bin/activate
 pip install -e ".[dev]"
+alembic upgrade head
 uvicorn oracle_api.main:app --reload
 ```
 
