@@ -76,6 +76,7 @@ The current simulator performs graph calculations only; it does not execute chan
 - [Security policy](SECURITY.md)
 - [Threat model](docs/THREAT_MODEL.md)
 - [Operations runbook](docs/OPERATIONS.md)
+- [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md)
 - [Attribution and license](LICENSE) and [NOTICE](NOTICE)
 
