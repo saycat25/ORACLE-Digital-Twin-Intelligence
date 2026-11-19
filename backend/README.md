@@ -20,7 +20,9 @@ API documentation: http://127.0.0.1:8000/docs
 | GET | /metrics | Authenticated Prometheus-compatible HTTP request metrics (admin role) |
 | POST/GET | /api/v1/nodes | Infrastructure components |
 | POST/GET | /api/v1/edges | Directed dependency edges |
-| GET | /api/v1/topology | Graph snapshot (nodes and edges) |
+| GET | /api/v1/topology | Current graph snapshot (nodes and edges) |
+| GET | /api/v1/topology/snapshots | Tenant-scoped topology version history |
+| GET | /api/v1/topology/snapshots/{id} | Read a historical topology version |
 | POST | /api/v1/scenarios/compare | Compare impacted components and impact-score deltas across two failure scenarios |
 | POST | /api/v1/ai/explain | Generate an optional DeepSeek explanation for a saved simulation |
 | POST/GET | /api/v1/simulations, /api/v1/simulations/{id} | Failure impact simulations and result retrieval |
@@ -40,7 +42,7 @@ Viewer: read inventory/topology, simulations and telemetry. Operator: viewer acc
 
 In development/test mode only, when ORACLE_API_KEYS is empty, requests are treated as an admin in the tenant supplied by X-Tenant-ID (or default). In production, ORACLE_API_KEYS is mandatory and the API refuses to start without it. Do not use development mode on a public deployment.
 
-Run alembic upgrade head before starting the service. The migration assigns existing legacy records to tenant default, then enables tenant-local node names and dependency uniqueness.
+Every component or dependency creation records a new topology version. Historical snapshots can be listed and read, but are not restored by this release. Run alembic upgrade head before starting the service. The migration assigns existing legacy records to tenant default, then enables tenant-local node names and dependency uniqueness.
 
 ## Optional DeepSeek assistance
 
