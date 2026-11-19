@@ -92,6 +92,7 @@ class AuditEventRead(BaseModel):
     resource_type: str
     resource_id: str
     details_json: str
+    integrity_hash: str
     created_at: datetime
 
 
@@ -167,3 +168,13 @@ class CapacityAssessmentResult(BaseModel):
     over_capacity: int
     warnings: int
     components: list[CapacityAssessmentItem]
+
+
+class AuditIntegrityReport(BaseModel):
+    tenant_id: str
+    algorithm: Literal["HMAC-SHA256", "SHA256"]
+    checked: int
+    verified: int
+    legacy_unverified: int
+    invalid_event_ids: list[int]
+    valid: bool
