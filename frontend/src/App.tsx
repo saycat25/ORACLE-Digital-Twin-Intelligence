@@ -24,14 +24,17 @@ type Telemetry = { id: number; node_id: number; metric: string; value: number; u
 type AuditEvent = { id: number; action: string; resource_type: string; resource_id: string; created_at: string };
 
 const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
-const TENANT = import.meta.env.VITE_TENANT_ID ?? "default";
+const TENANT = import.meta.env.VITE_TENANT_ID;
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "X-Tenant-ID": TENANT,
+      ...(TENANT ? { "X-Tenant-ID": TENANT } : {}),
+      ...(sessionStorage.getItem("oracle-api-key")
+        ? { "X-API-Key": sessionStorage.getItem("oracle-api-key") as string }
+        : {}),
       ...options.headers,
     },
   });
@@ -60,6 +63,7 @@ export default function App() {
   const [status, setStatus] = useState("Conectando à API…");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [apiCredential, setApiCredential] = useState(() => sessionStorage.getItem("oracle-api-key") ?? "");
 
   const refresh = useCallback(async () => {
     const [health, topology, samples, events] = await Promise.all([
@@ -82,6 +86,21 @@ export default function App() {
       setError(err.message);
     });
   }, [refresh]);
+
+  async function saveCredential(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const value = apiCredential.trim();
+    if (value) sessionStorage.setItem("oracle-api-key", value);
+    else sessionStorage.removeItem("oracle-api-key");
+    setStatus("Validando credencial…");
+    try {
+      await refresh();
+      setError("");
+    } catch (err) {
+      setStatus("Falha na autenticação");
+      setError(err instanceof Error ? err.message : "Credencial inválida.");
+    }
+  }
 
   async function submit(
     event: FormEvent<HTMLFormElement>,
@@ -126,6 +145,17 @@ export default function App() {
         <div className="brand-mark">O</div>
         <div><p className="eyebrow">DIGITAL TWIN INTELLIGENCE</p><h1>ORACLE</h1></div>
         <span className="status">{status}</span>
+        <form className="credential-form" onSubmit={saveCredential}>
+          <input
+            aria-label="Chave de API ORACLE"
+            type="password"
+            autoComplete="off"
+            value={apiCredential}
+            onChange={(event) => setApiCredential(event.target.value)}
+            placeholder="Chave de API"
+          />
+          <button type="submit">Conectar</button>
+        </form>
       </header>
 
       <section className="intro">
