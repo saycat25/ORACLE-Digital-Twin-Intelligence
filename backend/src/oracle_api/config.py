@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     cors_origins: str = "http://localhost:5173"
     api_keys: str = Field(default="", validation_alias="ORACLE_API_KEYS")
+    audit_hmac_key: str = Field(default="", validation_alias="AUDIT_HMAC_KEY")
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-flash"
