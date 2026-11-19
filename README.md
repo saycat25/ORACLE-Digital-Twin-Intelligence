@@ -31,7 +31,7 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 
 Tenant-isolated infrastructure records, role-based API authorization, telemetry ingestion and the audit trail are implemented at a baseline level. `ORACLE_API_KEYS` configures tenant-bound API credentials and RBAC roles (`viewer`, `operator`, `ingestor`, `admin`). In production, valid credentials are mandatory and the tenant comes from the matching credential, not from a user-selected tenant header. Development mode allows an unauthenticated local admin only when the API-key registry is empty. DeepSeek assistance requires `DEEPSEEK_API_KEY` and `AI_DATA_SHARING_ENABLED=true`; outbound sharing is disabled by default. `X-Tenant-ID` is an optional consistency check; with configured keys, the credential determines the tenant.
 
-OIDC/SSO and managed key lifecycle, tamper-evident audit storage and retention policies, OpenTelemetry export, alerting, historical topology replay/diff and capacity models, richer administration/history, load and penetration testing, SBOM, signed releases, and backup recovery remain open work. See the [roadmap](docs/ROADMAP.md) for the verified scope.
+OIDC/SSO and managed key lifecycle, tamper-evident audit storage and retention policies, alerting/SLOs, richer business-level traces, historical topology replay/diff and capacity models, richer administration, load and penetration testing, SBOM, signed releases, and backup recovery remain open work. See the [roadmap](docs/ROADMAP.md) for the verified scope.
 
 ## Quick start
 
@@ -65,7 +65,7 @@ ruff check .
 
 ## Safety
 
-The current simulator performs graph calculations only; it does not execute changes against infrastructure. Use synthetic topology data. Do not connect this development release to production systems without a security review, authentication/authorization controls, tenant isolation, backup/restore procedures, and operational testing.
+The current simulator performs graph calculations only; it does not execute changes against infrastructure. Use synthetic topology data. Baseline API-key authentication, role-based authorization and tenant scoping are implemented, but they are not a production certification. Do not connect this development release to production systems without independent security review, OIDC/SSO or equivalent identity integration, managed key lifecycle, tamper-evident audit retention, backup/restore procedures, and operational/load testing.
 
 ## Documentation
 
