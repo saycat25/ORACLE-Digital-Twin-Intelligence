@@ -46,6 +46,18 @@ def test_legacy_single_tenant_database_is_migrated(tmp_path, monkeypatch):
                 created_at DATETIME NOT NULL
             )
         """))
+        connection.execute(text("""
+            CREATE TABLE audit_events (
+                id INTEGER PRIMARY KEY,
+                tenant_id VARCHAR(120) NOT NULL,
+                actor VARCHAR(120) NOT NULL,
+                action VARCHAR(80) NOT NULL,
+                resource_type VARCHAR(80) NOT NULL,
+                resource_id VARCHAR(120) NOT NULL,
+                details_json TEXT NOT NULL,
+                created_at DATETIME NOT NULL
+            )
+        """))
         now = datetime.now(UTC).isoformat()
         connection.execute(
             text("""
@@ -136,6 +148,18 @@ def test_database_already_at_tenant_migration_receives_snapshot_table(tmp_path, 
                 created_at DATETIME NOT NULL
             )
         """))
+        connection.execute(text("""
+            CREATE TABLE audit_events (
+                id INTEGER PRIMARY KEY,
+                tenant_id VARCHAR(120) NOT NULL,
+                actor VARCHAR(120) NOT NULL,
+                action VARCHAR(80) NOT NULL,
+                resource_type VARCHAR(80) NOT NULL,
+                resource_id VARCHAR(120) NOT NULL,
+                details_json TEXT NOT NULL,
+                created_at DATETIME NOT NULL
+            )
+        """))
 
     monkeypatch.setattr(settings, "database_url", database_url)
     command.upgrade(Config("alembic.ini"), "head")
@@ -147,6 +171,8 @@ def test_database_already_at_tenant_migration_receives_snapshot_table(tmp_path, 
     }
     node_columns = {column["name"] for column in inspector.get_columns("infrastructure_nodes")}
     assert {"capacity_units", "current_load_units"} <= node_columns
+    audit_columns = {column["name"] for column in inspector.get_columns("audit_events")}
+    assert "integrity_hash" in audit_columns
     snapshot_indexes = {item["name"] for item in inspector.get_indexes("topology_snapshots")}
     assert "ix_topology_snapshots_tenant_id" in snapshot_indexes
     assert "ix_topology_snapshots_created_at" in snapshot_indexes
