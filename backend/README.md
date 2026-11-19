@@ -48,7 +48,7 @@ Viewer: read inventory/topology, simulations and telemetry. Operator: viewer acc
 
 In development/test mode only, when ORACLE_API_KEYS is empty, requests are treated as an admin in the tenant supplied by X-Tenant-ID (or default). In production, ORACLE_API_KEYS is mandatory and the API refuses to start without it. Do not use development mode on a public deployment.
 
-Every component or dependency creation records a new topology version. Historical snapshots can be listed and read, but are not restored by this release. Run `alembic upgrade head` before starting the service; migration `0003_node_capacity` adds capacity fields with conservative defaults for existing nodes. The migration assigns existing legacy records to tenant default, then enables tenant-local node names and dependency uniqueness.
+Every component or dependency creation records a new topology version. Historical snapshots can be listed and read, but are not restored by this release. Run `alembic upgrade head` before starting the service; migration `0003_node_capacity` adds capacity fields with conservative defaults for existing nodes. Migration 0001 assigns existing legacy records to tenant `default`; migrations 0002–0004 add topology history, capacity fields and audit integrity hashes. Legacy audit events retain an empty digest and are marked unverified until rotated or archived separately.
 
 ## Optional DeepSeek assistance
 
