@@ -25,7 +25,8 @@ API documentation: http://127.0.0.1:8000/docs
 | POST | /api/v1/ai/explain | Generate an optional DeepSeek explanation for a saved simulation |
 | POST/GET | /api/v1/simulations, /api/v1/simulations/{id} | Failure impact simulations and result retrieval |
 | POST/GET | /api/v1/telemetry | Ingest and query metric samples |
-| GET | /api/v1/audit | Query audit events |
+| GET | /api/v1/audit | Query audit events (admin only) |
+| GET | /api/v1/audit/export | Download tenant-scoped audit events as JSON (admin only) |
 
 ## HTTP metrics and telemetry ingestion
 
