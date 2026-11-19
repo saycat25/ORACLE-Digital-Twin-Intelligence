@@ -66,7 +66,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="ORACLE Digital Twin Intelligence API",
-    version="0.3.0",
+    version="0.4.0",
     description=(
         "Tenant-scoped infrastructure topology, deterministic impact simulation, "
         "telemetry, audit events and optional AI assistance."
