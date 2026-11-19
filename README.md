@@ -23,7 +23,7 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 - Deterministic, explainable dependency-impact engine.
 - React + TypeScript console starter.
 - Docker Compose development environment.
-- Pytest and Ruff CI workflow.
+- Pytest, Ruff, pip-audit and CodeQL security workflows.
 - Portuguese and English documentation.
 
 ## Limits and next phases
