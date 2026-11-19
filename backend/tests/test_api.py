@@ -12,8 +12,13 @@ from oracle_api.models import AuditEvent
 
 
 def test_oracle_api_keys_environment_alias_is_loaded():
-    configured = Settings(_env_file=None, ORACLE_API_KEYS="opaque-token|tenant-a|admin")
+    configured = Settings(
+        _env_file=None,
+        ORACLE_API_KEYS="opaque-token|tenant-a|admin",
+        AUDIT_HMAC_KEY="test-hmac-secret-with-at-least-32-bytes",
+    )
     assert configured.api_keys == "opaque-token|tenant-a|admin"
+    assert configured.audit_hmac_key == "test-hmac-secret-with-at-least-32-bytes"
 
 
 def test_health_endpoint():
