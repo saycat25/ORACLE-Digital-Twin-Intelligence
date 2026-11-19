@@ -12,7 +12,7 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 
 - FastAPI REST API for infrastructure nodes, dependency edges, topology snapshots, and simulations.
 - Basic telemetry sample ingestion and querying by component and metric.
-- Basic audit events for component/dependency creation, simulations, and telemetry ingestion.
+- Tenant-scoped audit events with per-event HMAC-SHA256 integrity checks, JSON export and admin access controls.
 - Admin-protected Prometheus-compatible HTTP request metrics and optional OpenTelemetry traces with OTLP export.
 - Tenant-scoped JSON audit export restricted to administrators, plus HMAC-SHA256 event-integrity verification.
 - Automatic, tenant-scoped topology history snapshots on every component/dependency change.
@@ -68,7 +68,7 @@ ruff check .
 
 ## Safety
 
-The current simulator performs graph calculations only; it does not execute changes against infrastructure. Use synthetic topology data. Baseline API-key authentication, role-based authorization and tenant scoping are implemented, but they are not a production certification. Do not connect this development release to production systems without independent security review, OIDC/SSO or equivalent identity integration, managed key lifecycle, tamper-evident audit retention, backup/restore procedures, and operational/load testing.
+The current simulator performs graph calculations only; it does not execute changes against infrastructure. Use synthetic topology data. Baseline API-key authentication, role-based authorization, tenant scoping and per-event audit HMAC checks are implemented, but they are not a production certification. Do not connect this development release to production systems without independent security review, OIDC/SSO or equivalent identity integration, managed key lifecycle, tamper-evident audit retention, backup/restore procedures, and operational/load testing.
 
 ## Documentation
 
