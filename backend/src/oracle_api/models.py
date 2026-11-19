@@ -63,6 +63,7 @@ class AuditEvent(Base):
     resource_type: Mapped[str] = mapped_column(String(80))
     resource_id: Mapped[str] = mapped_column(String(120), default="")
     details_json: Mapped[str] = mapped_column(Text, default="{}")
+    integrity_hash: Mapped[str] = mapped_column(String(64), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
 
 
