@@ -13,7 +13,7 @@ O ORACLE representa uma infraestrutura como um grafo direcionado. Os nós repres
 - API REST com FastAPI para componentes, dependências, topologia e simulações.
 - Endpoint de ingestão e consulta de amostras de telemetria por componente/métrica.
 - Trilha básica de auditoria para criação de componentes, dependências, simulações e ingestão de telemetria.
-- Métricas HTTP em formato compatível com Prometheus, protegidas pelo papel `admin`.
+- Métricas HTTP em formato compatível com Prometheus, protegidas pelo papel `admin`, e traces OpenTelemetry opcionais com exportação OTLP.
 - Exportação JSON da auditoria por tenant, restrita ao papel `admin`.
 - Exportação da topologia atual como snapshot JSON pela API.
 - Histórico temporal por tenant, com snapshots automáticos após cada criação de componente ou dependência e consulta de versões antigas.
