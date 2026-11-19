@@ -231,9 +231,8 @@ def test_invalid_api_key_is_rejected_when_credentials_are_configured(monkeypatch
 def test_production_startup_fails_without_api_credentials(monkeypatch):
     monkeypatch.setattr(settings, "oracle_env", "production")
     monkeypatch.setattr(settings, "api_keys", "")
-    with pytest.raises(RuntimeError, match="ORACLE_API_KEYS"):
-        with TestClient(app):
-            pass
+    with pytest.raises(RuntimeError, match="ORACLE_API_KEYS"), TestClient(app):
+        pass
 
 
 def test_deepseek_explanation_success_is_mocked_and_audited(monkeypatch):
