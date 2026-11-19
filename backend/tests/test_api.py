@@ -3,7 +3,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from oracle_api.config import settings
+from oracle_api.config import Settings, settings
 from oracle_api import main as oracle_main
 from oracle_api.main import app
 
