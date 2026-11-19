@@ -60,3 +60,13 @@ footer{padding:28px 0;color:#66758b;font:10px 'DM Mono',monospace}
 .snapshot-item.active{border-color:#70d9bd;background:#122923}
 .snapshot-item:disabled{opacity:.55;cursor:progress}
 .snapshot-detail{margin-top:20px;padding-top:16px;border-top:1px solid #263348}
+
+.demand-select{display:grid;gap:7px;color:#91a2b9;font:10px 'DM Mono',monospace;letter-spacing:.08em}
+.demand-select select{border:1px solid #34445c;border-radius:8px;background:#0b111c;color:#e9edf5;padding:9px 12px;font:12px Manrope,system-ui,sans-serif}
+.capacity-summary{display:flex;flex-wrap:wrap;gap:18px;margin:10px 0 16px;color:#91a2b9;font:11px 'DM Mono',monospace}
+.capacity-summary strong{color:#e9edf5;font-size:22px;margin-right:5px}
+.capacity-state{display:inline-block;border-radius:999px;padding:4px 8px;font:10px 'DM Mono',monospace}
+.capacity-state.normal{background:#15352d;color:#a8ead6}
+.capacity-state.warning{background:#47361b;color:#f3d69a}
+.capacity-state.over_capacity{background:#4b2027;color:#ffc5cd}
+.capacity-panel .panel-heading{align-items:end}
