@@ -10,6 +10,8 @@ services:
       CORS_ORIGINS: http://localhost:5173
       AI_DATA_SHARING_ENABLED: ${AI_DATA_SHARING_ENABLED:-false}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-oracle-api}
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:-}
     ports:
       - "8000:8000"
     depends_on:
