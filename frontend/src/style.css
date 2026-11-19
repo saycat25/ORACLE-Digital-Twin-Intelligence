@@ -13,3 +13,19 @@ h3{margin:0;font-size:18px}.panel-heading>span{color:#8e9db2;font:11px 'DM Mono'
 .error{padding:12px 15px;background:#351c25;border:1px solid #7d394b;border-radius:9px;color:#ffc4cf}
 footer{padding:28px 0;color:#66758b;font:10px 'DM Mono',monospace}
 @media(max-width:650px){.shell{padding:24px 16px}.intro{padding:52px 0 30px}.metrics{grid-template-columns:1fr}.status{font-size:9px}}
+
+.workspace{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.editor-form,.simulation-form{display:grid;gap:12px}
+.editor-form label,.simulation-form label{display:grid;gap:7px;color:#91a2b9;font:10px 'DM Mono',monospace;letter-spacing:.08em}
+.editor-form input,.editor-form select,.simulation-form select{width:100%;min-width:0;border:1px solid #34445c;border-radius:8px;background:#0b111c;color:#e9edf5;padding:11px;font:13px Manrope,system-ui,sans-serif}
+.editor-form button,.simulation-form button{border:1px solid #4b947f;border-radius:8px;background:#183b37;color:#b8f6e4;padding:12px 14px;font:600 12px Manrope,system-ui,sans-serif;cursor:pointer}
+.editor-form button:disabled,.simulation-form button:disabled{opacity:.45;cursor:not-allowed}
+.simulation-form{grid-template-columns:2fr 1.5fr auto;align-items:end}
+.result{margin-top:22px;padding-top:18px;border-top:1px solid #263348}
+.result h4{margin:0 0 14px;font-size:18px}
+.result small{display:block;margin-top:12px;color:#8e9db2;line-height:1.6}
+.event-list{display:grid;gap:0}
+.event{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #263348;font-size:12px}
+.event strong{color:#dce4ef;font-weight:600}
+.event span{color:#899bb2}
+@media(max-width:760px){.workspace{grid-template-columns:1fr}.simulation-form{grid-template-columns:1fr}}
