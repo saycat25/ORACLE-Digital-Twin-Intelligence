@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
-type NodeItem = { id: number; name: string; kind: string; criticality: number };
+type NodeItem = { id: number; name: string; kind: string; criticality: number; capacity_units: number; current_load_units: number };
 type EdgeItem = { id: number; source_id: number; target_id: number; criticality: number };
 type ImpactedNode = { node_id: number; name: string; hop_distance: number; impact_score: number };
 type ScenarioComparison = {
@@ -20,6 +20,8 @@ type Simulation = {
   total_impacted: number;
   methodology: string;
 };
+type CapacityComponent = { node_id: number; name: string; kind: string; capacity_units: number; current_load_units: number; projected_load_units: number; utilization_ratio: number; headroom_units: number; status: "normal" | "warning" | "over_capacity" };
+type CapacityAssessment = { demand_multiplier: number; components_assessed: number; over_capacity: number; warnings: number; components: CapacityComponent[] };
 type Telemetry = { id: number; node_id: number; metric: string; value: number; unit: string; observed_at: string };
 type AuditEvent = { id: number; action: string; resource_type: string; resource_id: string; created_at: string };
 type TopologySnapshotSummary = { id: number; tenant_id: string; version: number; node_count: number; edge_count: number; created_by: string; created_at: string };
@@ -115,6 +117,8 @@ export default function App() {
   const [nodes, setNodes] = useState<NodeItem[]>([]);
   const [edges, setEdges] = useState<EdgeItem[]>([]);
   const [telemetry, setTelemetry] = useState<Telemetry[]>([]);
+  const [capacity, setCapacity] = useState<CapacityAssessment | null>(null);
+  const [demandMultiplier, setDemandMultiplier] = useState(1.0);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
   const [snapshots, setSnapshots] = useState<TopologySnapshotSummary[]>([]);
   const [snapshotDetail, setSnapshotDetail] = useState<TopologySnapshotDetail | null>(null);
@@ -129,21 +133,23 @@ export default function App() {
   const [apiCredential, setApiCredential] = useState(() => sessionStorage.getItem("oracle-api-key") ?? "");
 
   const refresh = useCallback(async () => {
-    const [health, topology, samples, events, history] = await Promise.all([
+    const [health, topology, samples, events, history, capacityResult] = await Promise.all([
       request<{ status: string }>("/health"),
       request<{ nodes: NodeItem[]; edges: EdgeItem[] }>("/api/v1/topology"),
       request<Telemetry[]>("/api/v1/telemetry?limit=8"),
       request<AuditEvent[]>("/api/v1/audit?limit=8").catch(() => [] as AuditEvent[]),
       request<TopologySnapshotSummary[]>("/api/v1/topology/snapshots?limit=10"),
+      request<CapacityAssessment>(`/api/v1/capacity/assessment?demand_multiplier=${demandMultiplier}`),
     ]);
     setNodes(topology.nodes);
     setEdges(topology.edges);
     setTelemetry(samples);
+    setCapacity(capacityResult);
     setAudit(events);
     setSnapshots(history);
     setStatus(health.status === "ok" ? "API operacional" : "API indisponível");
     setError("");
-  }, []);
+  }, [demandMultiplier]);
 
   useEffect(() => {
     refresh().catch((err: Error) => {
@@ -271,6 +277,40 @@ export default function App() {
         <article><span>TELEMETRIA</span><strong>{telemetry.length}</strong><small>amostras recentes</small></article>
       </section>
 
+      <section className="panel capacity-panel">
+        <div className="panel-heading">
+          <div><p className="eyebrow">CAPACITY PLANNER</p><h3>Projeção de capacidade</h3></div>
+          <label className="demand-select">Multiplicador de demanda
+            <select value={demandMultiplier} onChange={(event) => setDemandMultiplier(Number(event.target.value))}>
+              <option value="1">Base · 1,0×</option>
+              <option value="1.1">Crescimento · 1,1×</option>
+              <option value="1.25">Pico · 1,25×</option>
+              <option value="1.5">Estresse · 1,5×</option>
+              <option value="2">Extremo · 2,0×</option>
+            </select>
+          </label>
+        </div>
+        {capacity && <>
+          <div className="capacity-summary">
+            <span><strong>{capacity.components_assessed}</strong> componentes</span>
+            <span><strong>{capacity.warnings}</strong> em alerta (≥80%)</span>
+            <span><strong>{capacity.over_capacity}</strong> acima do limite (≥100%)</span>
+          </div>
+          {capacity.components.length === 0 ? <p className="empty">Cadastre componentes para projetar a capacidade.</p> :
+            <div className="table-wrap"><table><thead><tr><th>Componente</th><th>Carga projetada</th><th>Capacidade</th><th>Utilização</th><th>Folga</th><th>Estado</th></tr></thead><tbody>
+              {capacity.components.map((item) => <tr key={item.node_id}>
+                <td>{item.name}</td>
+                <td>{item.projected_load_units.toFixed(1)}</td>
+                <td>{item.capacity_units.toFixed(1)}</td>
+                <td>{(item.utilization_ratio * 100).toFixed(1)}%</td>
+                <td>{item.headroom_units.toFixed(1)}</td>
+                <td><span className={`capacity-state ${item.status}`}>{item.status === "normal" ? "Normal" : item.status === "warning" ? "Atenção" : "Sobrecarga"}</span></td>
+              </tr>)}
+            </tbody></table></div>}
+        </>}
+        <p className="graph-caption">Projeção determinística da carga declarada × multiplicador selecionado. Não presume failover, distribuição automática de tráfego ou capacidade não cadastrada.</p>
+      </section>
+
       <section className="workspace">
         <article className="panel">
           <div className="panel-heading"><div><p className="eyebrow">INVENTORY</p><h3>Novo componente</h3></div></div>
@@ -282,6 +322,8 @@ export default function App() {
               name: String(form.get("name")),
               kind: String(form.get("kind")),
               criticality: Number(form.get("criticality")),
+              capacity_units: Number(form.get("capacity_units")),
+              current_load_units: Number(form.get("current_load_units")),
             }) });
             formElement.reset();
           });
@@ -289,6 +331,8 @@ export default function App() {
             <label>Nome<input name="name" required minLength={2} maxLength={120} pattern="[a-zA-Z0-9][a-zA-Z0-9._-]*" placeholder="payments-api" /></label>
             <label>Tipo<select name="kind"><option value="service">Serviço</option><option value="database">Banco de dados</option><option value="queue">Fila</option><option value="api">API</option><option value="worker">Worker</option><option value="cache">Cache</option><option value="gateway">Gateway</option><option value="other">Outro</option></select></label>
             <label>Criticidade<select name="criticality"><option value="0.25">Baixa · 25%</option><option value="0.5" selected>Média · 50%</option><option value="0.75">Alta · 75%</option><option value="1">Crítica · 100%</option></select></label>
+            <label>Capacidade nominal<input name="capacity_units" type="number" min="0.01" step="any" defaultValue="100" required /></label>
+            <label>Carga atual<input name="current_load_units" type="number" min="0" step="any" defaultValue="0" required /></label>
             <button disabled={busy || status !== "API operacional"}>Adicionar componente</button>
           </form>
         </article>
