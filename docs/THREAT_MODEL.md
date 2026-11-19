@@ -47,8 +47,8 @@ This is a baseline assessment, not an independent security certification.
 | Credential theft | Secrets are supplied by environment configuration; browser stores the API key in sessionStorage | Secret-manager integration, key hashing/storage strategy, automatic rotation and revocation |
 | Malicious or oversized input | Pydantic validation and bounded list limits | Request-body limits, rate limiting, fuzzing and load tests |
 | Audit tampering | Per-event HMAC-SHA256 signatures verified by an admin-only endpoint | External immutable archive, deletion detection, retention policy, key rotation and protected key backup |
-| Database loss/corruption | PostgreSQL volume and migration framework | Automated backup/restore tooling, restore drills and recovery objectives |
-| Dependency or source compromise | pip-audit and CodeQL workflows | SBOM generation, artifact signing and release provenance |
+| Database loss/corruption | PostgreSQL volume, Alembic migrations and checksum-verified backup/restore scripts | Encrypted off-site backup retention, restore drills and defined RPO/RTO objectives |
+| Dependency or source compromise | pip-audit, npm audit, CodeQL, CycloneDX backend SBOM and tag-triggered release attestations | Review/verify each release attestation, vulnerability triage and frontend SBOM coverage |
 | External AI data exposure | DeepSeek outbound sharing disabled by default and explicit server opt-in | Organization-level policy approval, provider contractual review and detailed outbound audit |
 | Unsafe operational integration | Simulation engine is analytical and does not modify target infrastructure | Production integrations must remain read-only by default and require explicit approvals |
 
