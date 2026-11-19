@@ -28,6 +28,17 @@ jobs:
       - run: ruff check .
       - run: alembic upgrade head
       - run: pytest
+      - name: Generate CycloneDX SBOM
+        run: |
+          pip install cyclonedx-bom
+          cyclonedx-py environment --sv 1.6 --of JSON -o ../oracle-backend-sbom.cdx.json
+      - name: Upload backend SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: oracle-backend-sbom
+          path: oracle-backend-sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 30
 
   frontend:
     runs-on: ubuntu-latest
