@@ -1,9 +1,10 @@
 import json
+import time
 from contextlib import asynccontextmanager
 from typing import Annotated
 
 import httpx
-from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 from oracle_api.config import settings
 from oracle_api.db import Base, engine, get_session
 from oracle_api.engine import analyze_impact
+from oracle_api.observability import record_http_request, render_prometheus_metrics
 from oracle_api.models import (
     AuditEvent,
     DependencyEdge,
@@ -73,6 +75,39 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type", "Authorization", "X-API-Key", "X-Tenant-ID"],
 )
+
+
+
+@app.middleware("http")
+async def collect_http_metrics(request: Request, call_next):
+    started = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        route = getattr(request.scope.get("route"), "path", "unmatched")
+        record_http_request(request.method, route, 500, time.perf_counter() - started)
+        raise
+    route = getattr(request.scope.get("route"), "path", "unmatched")
+    record_http_request(
+        request.method,
+        route,
+        response.status_code,
+        time.perf_counter() - started,
+    )
+    return response
+
+
+@app.get(
+    "/metrics",
+    tags=["operations"],
+    dependencies=[Depends(require_roles("admin"))],
+    include_in_schema=True,
+)
+def metrics_endpoint():
+    return Response(
+        content=render_prometheus_metrics(),
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+    )
 
 
 def record_audit(
