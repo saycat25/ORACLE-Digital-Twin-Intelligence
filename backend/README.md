@@ -19,6 +19,7 @@ API documentation: http://127.0.0.1:8000/docs
 | POST/GET | /api/v1/nodes | Infrastructure components |
 | POST/GET | /api/v1/edges | Directed dependency edges |
 | GET | /api/v1/topology | Graph snapshot (nodes and edges) |
+| POST | /api/v1/scenarios/compare | Compare impacted components and impact-score deltas across two failure scenarios |
 | POST/GET | /api/v1/simulations, /api/v1/simulations/{id} | Failure impact simulations and result retrieval |
 | POST/GET | /api/v1/telemetry | Ingest and query metric samples |
 | GET | /api/v1/audit | Query audit events |
