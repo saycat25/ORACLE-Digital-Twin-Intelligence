@@ -119,4 +119,5 @@ def get_simulation(simulation_id: int, session: Session = Depends(get_session)):
     if record is None:
         raise HTTPException(status_code=404, detail="Simulation was not found.")
     data = json.loads(record.result_json)
-    return SimulationResult(simulation_id=record.id, **data)
+    data["simulation_id"] = record.id
+    return SimulationResult(**data)
