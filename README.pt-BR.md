@@ -16,6 +16,7 @@ O ORACLE representa uma infraestrutura como um grafo direcionado. Os nós repres
 - Exportação da topologia atual como snapshot JSON pela API.
 - Comparação determinística de dois cenários com lista de impactos exclusivos/compartilhados e variação de pontuação.
 - Explicação opcional de simulações via DeepSeek, protegida por opt-in explícito no servidor.
+- Comparação e análise assistida disponíveis na API documentada em `/docs`.
 - Persistência SQLAlchemy, com SQLite por padrão e suporte a PostgreSQL.
 - Motor determinístico e explicável de análise de impacto.
 - Base de console web em React + TypeScript.
