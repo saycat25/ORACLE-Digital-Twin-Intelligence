@@ -6,6 +6,7 @@ from typing import Annotated
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from opentelemetry.trace import Status, StatusCode
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -13,7 +14,7 @@ from sqlalchemy.orm import Session
 from oracle_api.config import settings
 from oracle_api.db import Base, engine, get_session
 from oracle_api.engine import analyze_impact
-from oracle_api.observability import record_http_request, render_prometheus_metrics
+from oracle_api.observability import record_http_request, render_prometheus_metrics, tracer
 from oracle_api.models import (
     AuditEvent,
     DependencyEdge,
@@ -84,19 +85,28 @@ app.add_middleware(
 @app.middleware("http")
 async def collect_http_metrics(request: Request, call_next):
     started = time.perf_counter()
-    try:
-        response = await call_next(request)
-    except Exception:
+    with tracer.start_as_current_span("oracle.http.request") as span:
+        span.set_attribute("http.request.method", request.method)
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            route = getattr(request.scope.get("route"), "path", "unmatched")
+            record_http_request(request.method, route, 500, time.perf_counter() - started)
+            span.set_attribute("http.route", route)
+            span.set_attribute("http.response.status_code", 500)
+            span.record_exception(exc)
+            span.set_status(Status(StatusCode.ERROR, "Unhandled API exception"))
+            raise
+
         route = getattr(request.scope.get("route"), "path", "unmatched")
-        record_http_request(request.method, route, 500, time.perf_counter() - started)
-        raise
-    route = getattr(request.scope.get("route"), "path", "unmatched")
-    record_http_request(
-        request.method,
-        route,
-        response.status_code,
-        time.perf_counter() - started,
-    )
+        duration = time.perf_counter() - started
+        record_http_request(request.method, route, response.status_code, duration)
+        span.set_attribute("http.route", route)
+        span.set_attribute("http.response.status_code", response.status_code)
+        span.set_attribute("http.server.duration", duration)
+        if response.status_code >= 500:
+            span.set_status(Status(StatusCode.ERROR, "HTTP server error"))
+
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
