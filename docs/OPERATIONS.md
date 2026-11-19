@@ -45,7 +45,7 @@ The restore script verifies the adjacent SHA-256 file, stops the API to prevent 
 
 - API health and Alembic head revision.
 - Expected tenant IDs, node/edge counts, telemetry and topology snapshot history.
-- A sample simulation and a read from each expected tenant.
+- A sample simulation, capacity assessment and a read from each expected tenant.
 - Database logs and application errors.
 
 Perform periodic restore drills in an isolated environment. Define and test organization-specific RPO/RTO objectives; the existence of a backup file alone is not proof of recoverability.
