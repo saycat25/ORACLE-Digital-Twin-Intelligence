@@ -48,6 +48,10 @@ Every component or dependency creation records a new topology version. Historica
 
 Set DEEPSEEK_API_KEY, and explicitly set AI_DATA_SHARING_ENABLED=true to permit sending the selected saved simulation result to DeepSeek. The integration uses DEEPSEEK_BASE_URL (default https://api.deepseek.com), DEEPSEEK_MODEL (default deepseek-flash) and a configurable timeout. Without the opt-in flag, the endpoint returns 403 and sends no data. Review the data-sharing implications before enabling this feature.
 
+## Operations
+
+See the [operations runbook](../docs/OPERATIONS.md) for Docker Compose setup, configuration, PostgreSQL backup/restore, and release artifact verification.
+
 ## Validation
 
 ```bash
