@@ -11,7 +11,7 @@ A phase is complete only when its implementation, tests, documentation and CI ev
 | 5. Digital twin evolution | Temporal topology, scenario comparison, capacity models | Deterministic comparison of two failure scenarios implemented; topology versioning, time-based replay and capacity models remain open |
 | 6. AI assistance | Optional provider integration, grounded explanations, human review | Optional DeepSeek explanation endpoint implemented with explicit outbound-data opt-in and API gate; automated tests mock provider responses, live-key validation remains deployment-specific |
 | 7. Web console | Topology visualization, scenario builder, history, administration | Component/dependency editors, SVG topology graph, single and comparative simulations, telemetry/audit views, session-scoped API key input and admin audit export implemented; richer history and administration remain open |
-| 8. Production readiness | Threat-model closure, load/security tests, SBOM, signed releases, backup/restore | CI, dependency audit and schema migration validation implemented; load/penetration testing, SBOM, signed releases, backup/restore drills and independent security review remain open |
+| 8. Production readiness | Threat-model closure, load/security tests, SBOM, signed releases, backup/restore | CI, pip-audit, tenant migration checks, response security headers and CodeQL workflows for Python/TypeScript implemented; load/penetration testing, SBOM, signed releases, backup/restore drills and independent security review remain open |
 
 ## Security boundary
 
