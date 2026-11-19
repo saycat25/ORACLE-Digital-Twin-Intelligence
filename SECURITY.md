@@ -11,3 +11,8 @@ Do not publish exploitable details in public issues. Contact the repository main
 ## Deployment warning
 
 Until authentication, authorization, tenant isolation, secrets management, audit controls, and deployment hardening are implemented and independently reviewed, run only in a trusted development environment with synthetic data. Never expose the development API directly to the public internet.
+
+
+## Tenant credentials and roles
+
+Configure ORACLE_API_KEYS as semicolon-separated token|tenant-id|role entries. Keep these values in a secret manager; never commit live credentials. Production startup is blocked when the registry is empty. Rotate credentials by deploying a replacement registry and removing old entries. OIDC/SSO and self-service credential lifecycle are not yet implemented.
