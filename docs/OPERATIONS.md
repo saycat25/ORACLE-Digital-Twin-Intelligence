@@ -31,7 +31,7 @@ Create a checksum-protected PostgreSQL custom-format backup:
 bash scripts/backup-postgres.sh
 ```
 
-The default output directory is `./backups`; set `BACKUP_DIR` to override it. Backup files are sensitive: protect access, encrypt them at rest and copy them to a separate durable storage system. The repository script does not configure off-site storage or retention.
+The default output directory is `./backups`; set `BACKUP_DIR` to override it. Backup files are sensitive: protect access, encrypt them at rest and copy them to a separate durable storage system. The repository script does not configure off-site storage or retention. Back up the audit HMAC key separately from the database; without the same key, existing HMAC signatures cannot be validated.
 
 ## Restore
 
@@ -44,7 +44,7 @@ ORACLE_CONFIRM_RESTORE=YES bash scripts/restore-postgres.sh ./backups/oracle-ora
 The restore script verifies the adjacent SHA-256 file, stops the API to prevent concurrent writes, restores with `pg_restore --clean`, and starts the API only after a successful restore. On failure, the API remains stopped. After recovery, verify:
 
 - API health and Alembic head revision.
-- Expected tenant IDs, node/edge counts, telemetry and topology snapshot history.
+- Expected tenant IDs, node/edge counts, telemetry and topology snapshot history.\n- The audit integrity report at GET /api/v1/audit/verify; pre-HMAC legacy events will be shown as unverified.
 - A sample simulation, capacity assessment and a read from each expected tenant.
 - Database logs and application errors.
 
