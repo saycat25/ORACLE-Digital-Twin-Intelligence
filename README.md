@@ -16,6 +16,7 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 - Admin-protected Prometheus-compatible HTTP request metrics and optional OpenTelemetry traces with OTLP export.
 - Tenant-scoped JSON audit export restricted to administrators.
 - Automatic, tenant-scoped topology history snapshots on every component/dependency change.
+- Deterministic capacity projections using operator-declared component capacity and current load.
 - Deterministic comparison of two failure scenarios, including newly impacted/shared nodes and score deltas.
 - Optional DeepSeek explanations for saved simulations, protected by an explicit server-side data-sharing opt-in.
 - Scenario comparison and AI explanation endpoints documented automatically through FastAPI OpenAPI.
