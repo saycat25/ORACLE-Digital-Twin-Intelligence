@@ -1,8 +1,10 @@
 from uuid import uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 
 from oracle_api.config import settings
+from oracle_api import main as oracle_main
 from oracle_api.main import app
 
 
@@ -223,3 +225,82 @@ def test_invalid_api_key_is_rejected_when_credentials_are_configured(monkeypatch
     with TestClient(app) as client:
         response = client.get("/api/v1/nodes", headers={"X-API-Key": "invalid-token"})
     assert response.status_code == 401
+
+
+
+def test_production_startup_fails_without_api_credentials(monkeypatch):
+    monkeypatch.setattr(settings, "oracle_env", "production")
+    monkeypatch.setattr(settings, "api_keys", "")
+    with pytest.raises(RuntimeError, match="ORACLE_API_KEYS"):
+        with TestClient(app):
+            pass
+
+
+def test_deepseek_explanation_success_is_mocked_and_audited(monkeypatch):
+    monkeypatch.setattr(settings, "oracle_env", "development")
+    monkeypatch.setattr(settings, "api_keys", "")
+    monkeypatch.setattr(settings, "ai_data_sharing_enabled", True)
+    monkeypatch.setattr(settings, "deepseek_api_key", "test-deepseek-key")
+    monkeypatch.setattr(settings, "deepseek_model", "deepseek-flash")
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {
+                "choices": [
+                    {"message": {"content": "A simulação identificou um consumidor dependente."}}
+                ]
+            }
+
+    class FakeClient:
+        def __init__(self, timeout):
+            captured["timeout"] = timeout
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+        def post(self, endpoint, json, headers):
+            captured["endpoint"] = endpoint
+            captured["payload"] = json
+            captured["headers"] = headers
+            return FakeResponse()
+
+    monkeypatch.setattr(oracle_main.httpx, "Client", FakeClient)
+    tenant = f"deepseek-{uuid4().hex}"
+    with TestClient(app) as client:
+        created = client.post(
+            "/api/v1/nodes",
+            headers={"X-Tenant-ID": tenant},
+            json={
+                "name": f"deepseek-node-{uuid4().hex[:10]}",
+                "kind": "service",
+                "criticality": 0.7,
+            },
+        )
+        assert created.status_code == 201
+        simulation = client.post(
+            "/api/v1/simulations",
+            headers={"X-Tenant-ID": tenant},
+            json={"failed_node_id": created.json()["id"], "failure_mode": "unavailable"},
+        )
+        assert simulation.status_code == 201
+        explained = client.post(
+            "/api/v1/ai/explain",
+            headers={"X-Tenant-ID": tenant},
+            json={"simulation_id": simulation.json()["simulation_id"]},
+        )
+        assert explained.status_code == 200
+        assert "consumidor dependente" in explained.json()["explanation"]
+        audit = client.get("/api/v1/audit", headers={"X-Tenant-ID": tenant})
+        assert "ai.explanation.generated" in {event["action"] for event in audit.json()}
+
+    assert captured["endpoint"].endswith("/chat/completions")
+    assert captured["payload"]["model"] == "deepseek-flash"
+    assert captured["headers"]["Authorization"] == "Bearer test-deepseek-key"
+    assert captured["payload"]["stream"] is False
