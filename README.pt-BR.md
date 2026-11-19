@@ -1,44 +1,26 @@
 # ORACLE — Digital Twin Intelligence
 
-**Plataforma de gêmeos digitais para modelar infraestrutura de software, simular falhas controladas e analisar o impacto entre dependências.**
+**Gêmeo digital empresarial de infraestrutura para modelagem de dependências, simulação controlada de falhas e análise explicável de impacto.**
 
-> O ORACLE está sendo desenvolvido em etapas. Esta versão contém a primeira base executável: modelo tipado de infraestrutura, mecanismo determinístico de análise de impacto, API FastAPI, persistência, testes, configuração Docker e início do painel React. Funcionalidades do roadmap não são consideradas implementadas até que tenham código e testes correspondentes.
+> **Status:** em desenvolvimento ativo. Este repositório ainda não é certificado nem deve ser considerado pronto para produção. Confira o estado real da implementação e as notas de segurança antes de implantar.
 
-## Ideia central
+## O que é
 
-O ORACLE representa um ambiente como um grafo direcionado:
+O ORACLE representa uma infraestrutura como um grafo direcionado. Os nós representam serviços ou componentes; as arestas representam relações de consumidor para dependência. O motor atual percorre as dependências reversas a partir de um componente com falha e calcula pontuações determinísticas de impacto ponderadas pela criticidade.
 
-- **Nós** representam serviços, bancos de dados, filas, APIs ou componentes de infraestrutura.
-- **Arestas** representam dependências e sua criticidade.
-- **Cenários** descrevem degradação ou indisponibilidade controlada de um componente.
-- **Resultados** estimam quais componentes dependentes podem ser afetados, usando alcançabilidade no grafo e criticidade das dependências.
+## Implementado nesta versão
 
-O mecanismo inicial é determinístico e explicável. Ele ainda não prevê interrupções reais nem aprende o comportamento do ambiente a partir de telemetria.
+- API REST com FastAPI para componentes, dependências e simulações.
+- Persistência SQLAlchemy, com SQLite por padrão e suporte a PostgreSQL.
+- Motor determinístico e explicável de análise de impacto.
+- Base de console web em React + TypeScript.
+- Ambiente de desenvolvimento com Docker Compose.
+- Testes com Pytest e análise estática com Ruff na integração contínua.
+- Documentação em português e inglês.
 
-## Recursos implementados nesta base
+## Capacidades empresariais planejadas
 
-- Criar e listar componentes da infraestrutura.
-- Criar e listar dependências direcionadas.
-- Executar simulação determinística de impacto a partir de um componente.
-- Persistir topologia e resultados em SQLite por padrão; PostgreSQL pode ser usado por `DATABASE_URL`.
-- Disponibilizar endpoints de saúde e API.
-- Executar testes automatizados.
-- Subir API e banco com Docker Compose.
-
-## Arquitetura
-
-```text
-Painel React + TypeScript
-          |
-          v
-       API FastAPI
-          |
-          +---- Domínio / mecanismo de grafos
-          |
-          +---- Repositórios SQLAlchemy
-                       |
-                 SQLite / PostgreSQL
-```
+Os itens abaixo são objetivos de desenvolvimento e não devem ser considerados implementados até que existam código e testes correspondentes: OIDC/SSO, isolamento multi-tenant, RBAC granular, trilha de auditoria imutável, ingestão de telemetria, métricas e traces OpenTelemetry, topologia temporal, explicações assistidas por IA, limitação de requisições, testes de carga e segurança, SBOM e releases assinadas.
 
 ## Instalação rápida
 
@@ -55,69 +37,42 @@ pip install -e ".[dev]"
 uvicorn oracle_api.main:app --reload
 ```
 
-Acesse `http://127.0.0.1:8000/docs`.
-
-## Testes
-
-```bash
-cd backend
-pytest
-```
+Documentação da API: http://127.0.0.1:8000/docs
 
 ## Docker
-
-Na raiz do repositório:
 
 ```bash
 docker compose up --build
 ```
 
-API: `http://localhost:8000`  
-OpenAPI: `http://localhost:8000/docs`
+## Executar testes
 
-## Configuração
+```bash
+cd backend
+pytest
+ruff check .
+```
 
-Copie `.env.example` para `.env`.
+## Segurança e uso responsável
 
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `ORACLE_ENV` | `development` | Ambiente de execução |
-| `DATABASE_URL` | `sqlite:///./oracle.db` | URL do banco SQLAlchemy |
-| `API_PREFIX` | `/api/v1` | Prefixo versionado da API |
-| `CORS_ORIGINS` | `http://localhost:5173` | Origens permitidas, separadas por vírgula |
+O simulador atual executa apenas cálculos sobre o grafo; não realiza alterações na infraestrutura. Utilize dados sintéticos. Não conecte esta versão de desenvolvimento a sistemas de produção sem revisão de segurança, autenticação e autorização, isolamento entre organizações, procedimentos de backup/restauração e testes operacionais.
 
-Nunca publique credenciais reais ou segredos de infraestrutura.
+## Documentação
 
-## Endpoints
+- [Documentação em inglês](README.md)
+- [Política de segurança](SECURITY.md)
+- [Modelo de ameaças](docs/THREAT_MODEL.md)
+- [Como contribuir](CONTRIBUTING.md)
+- [Licença e atribuição](LICENSE) e [NOTICE](NOTICE)
 
-| Método | Endpoint | Finalidade |
-|---|---|---|
-| GET | `/health` | Verificação de disponibilidade |
-| POST | `/api/v1/nodes` | Criar componente |
-| GET | `/api/v1/nodes` | Listar componentes |
-| POST | `/api/v1/edges` | Criar dependência |
-| GET | `/api/v1/edges` | Listar dependências |
-| POST | `/api/v1/simulations` | Executar simulação de impacto |
-| GET | `/api/v1/simulations/{id}` | Consultar simulação |
+## Direitos autorais, licença e atribuição obrigatória
 
-## Segurança e operação
+O ORACLE utiliza a **ORACLE Attribution License (OAL) 1.0**. O uso, a modificação e a redistribuição são gratuitos, inclusive para fins comerciais, desde que:
 
-- Esta primeira versão é uma base de desenvolvimento, não uma implantação pronta para produção.
-- Não conecte o sistema a infraestrutura de produção nem execute ações disruptivas.
-- As simulações calculam impacto no grafo e não alteram infraestrutura.
-- Autenticação, autorização, isolamento entre organizações, trilha de auditoria imutável, ingestão de telemetria e endurecimento para produção estão no roadmap.
-- Utilize dados sintéticos até que os controles de segurança e os procedimentos operacionais sejam revisados.
+1. O aviso de direitos autorais e o texto da licença sejam preservados.
+2. Seja dado crédito claro ao projeto original.
+3. Seja incluído um link clicável para o repositório original:
+   https://github.com/saycat25/ORACLE-Digital-Twin-Intelligence
+4. Versões modificadas sejam identificadas como modificadas e não sugiram endosso dos autores originais.
 
-## Roadmap
-
-1. **Fundação (atual):** modelo de topologia, simulação determinística, API REST, persistência, testes e contêineres.
-2. **Controles empresariais:** OIDC/OAuth2, RBAC, isolamento multi-tenant, trilha de auditoria e limites de API.
-3. **Observabilidade:** ingestão de métricas, traces e logs via OpenTelemetry, normalização de eventos e descoberta de topologia.
-4. **Evolução do gêmeo digital:** estado temporal, modelos de capacidade e falhas em cascata.
-5. **Análise assistida por IA:** provedor DeepSeek opcional para explicações e resumos, mantendo os resultados determinísticos como fonte da verdade.
-6. **Console web:** visualização da topologia, criação de cenários, histórico e governança.
-7. **Confiabilidade:** testes de carga, modelo de ameaças, SBOM, releases assinadas e CI.
-
-## Contribuição e licença
-
-Consulte [CONTRIBUTING.md](CONTRIBUTING.md). Licença MIT em [LICENSE](LICENSE).
+Esta é uma licença personalizada com exigência de atribuição. **Não é MIT, Apache-2.0 nem uma licença aprovada pela Open Source Initiative (OSI)**. Consulte o arquivo [LICENSE](LICENSE) para os termos completos. Dependências de terceiros mantêm suas próprias licenças.
