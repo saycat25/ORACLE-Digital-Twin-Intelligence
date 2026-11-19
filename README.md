@@ -15,13 +15,14 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 - Basic audit events for component/dependency creation, simulations, and telemetry ingestion.
 - Admin-protected Prometheus-compatible HTTP request metrics.
 - Tenant-scoped JSON audit export restricted to administrators.
+- Automatic, tenant-scoped topology history snapshots on every component/dependency change.
 - Deterministic comparison of two failure scenarios, including newly impacted/shared nodes and score deltas.
 - Optional DeepSeek explanations for saved simulations, protected by an explicit server-side data-sharing opt-in.
 - Scenario comparison and AI explanation endpoints documented automatically through FastAPI OpenAPI.
-- Operational console for creating components/dependencies and running failure simulations.
+- Operational console for creating components/dependencies, visualizing the live graph and historical topology versions, comparing failure scenarios, reviewing telemetry/audit and exporting audit data.
 - SQLAlchemy persistence with SQLite by default and PostgreSQL support.
 - Deterministic, explainable dependency-impact engine.
-- React + TypeScript console starter.
+- React + TypeScript operational console.
 - Docker Compose development environment.
 - Pytest, Ruff, pip-audit and CodeQL security workflows.
 - Portuguese and English documentation.
@@ -30,7 +31,7 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 
 Tenant-isolated infrastructure records, role-based API authorization, telemetry ingestion and the audit trail are implemented at a baseline level. `ORACLE_API_KEYS` configures tenant-bound API credentials and RBAC roles (`viewer`, `operator`, `ingestor`, `admin`). In production, valid credentials are mandatory and the tenant comes from the matching credential, not from a user-selected tenant header. Development mode allows an unauthenticated local admin only when the API-key registry is empty. DeepSeek assistance requires `DEEPSEEK_API_KEY` and `AI_DATA_SHARING_ENABLED=true`; outbound sharing is disabled by default. `X-Tenant-ID` is an optional consistency check; with configured keys, the credential determines the tenant.
 
-OIDC/SSO and managed key lifecycle, tamper-evident audit storage and retention policies, OpenTelemetry export, alerting, temporal topology and capacity models, richer administration/history, load and penetration testing, SBOM, signed releases, and backup recovery remain open work. See the [roadmap](docs/ROADMAP.md) for the verified scope.
+OIDC/SSO and managed key lifecycle, tamper-evident audit storage and retention policies, OpenTelemetry export, alerting, historical topology replay/diff and capacity models, richer administration/history, load and penetration testing, SBOM, signed releases, and backup recovery remain open work. See the [roadmap](docs/ROADMAP.md) for the verified scope.
 
 ## Quick start
 
