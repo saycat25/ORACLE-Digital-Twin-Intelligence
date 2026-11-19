@@ -12,6 +12,17 @@ def test_health_endpoint():
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
 
+def test_prometheus_metrics_endpoint_returns_request_counters():
+    with TestClient(app) as client:
+        health = client.get("/health")
+        metrics = client.get("/metrics")
+    assert health.status_code == 200
+    assert metrics.status_code == 200
+    assert "text/plain" in metrics.headers["content-type"]
+    assert "oracle_http_requests_total" in metrics.text
+    assert 'route="/health"' in metrics.text
+
+
 
 def test_telemetry_ingestion_and_audit_trail():
     tenant = f"pytest-{uuid4().hex}"
@@ -165,6 +176,10 @@ def test_api_key_rbac_and_tenant_isolation(monkeypatch):
             headers={"X-API-Key": "viewer-a", "X-Tenant-ID": "tenant-b"},
         )
         assert forged_tenant.status_code == 403
+        audit_denied = client.get("/api/v1/audit", headers={"X-API-Key": "viewer-a"})
+        assert audit_denied.status_code == 403
+        metrics_denied = client.get("/metrics", headers={"X-API-Key": "viewer-a"})
+        assert metrics_denied.status_code == 403
 
         foreign_simulation = client.post(
             "/api/v1/simulations",
