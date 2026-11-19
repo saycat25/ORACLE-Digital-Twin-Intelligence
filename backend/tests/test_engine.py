@@ -44,3 +44,52 @@ def test_missing_failed_node_is_rejected():
         assert "does not exist" in str(exc)
     else:
         raise AssertionError("Expected ValueError")
+
+
+
+def test_capacity_assessment_marks_warnings_and_over_capacity():
+    from oracle_api.engine import assess_capacity
+
+    result = assess_capacity(
+        [
+            {
+                "id": 1,
+                "name": "healthy",
+                "kind": "service",
+                "capacity_units": 100.0,
+                "current_load_units": 40.0,
+            },
+            {
+                "id": 2,
+                "name": "warning",
+                "kind": "database",
+                "capacity_units": 100.0,
+                "current_load_units": 80.0,
+            },
+            {
+                "id": 3,
+                "name": "overloaded",
+                "kind": "worker",
+                "capacity_units": 100.0,
+                "current_load_units": 95.0,
+            },
+        ],
+        demand_multiplier=1.1,
+    )
+    by_name = {item["name"]: item for item in result}
+    assert by_name["healthy"]["status"] == "normal"
+    assert by_name["warning"]["status"] == "warning"
+    assert by_name["overloaded"]["status"] == "over_capacity"
+    assert by_name["overloaded"]["headroom_units"] == 0.0
+    assert result[0]["name"] == "overloaded"
+
+
+def test_capacity_assessment_rejects_invalid_demand_multiplier():
+    from oracle_api.engine import assess_capacity
+
+    try:
+        assess_capacity([], demand_multiplier=6.0)
+    except ValueError as exc:
+        assert "at most 5" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError")
