@@ -26,9 +26,9 @@ O ORACLE representa uma infraestrutura como um grafo direcionado. Os nós repres
 
 ## Limites e próximas fases
 
-A ingestão de telemetria e a trilha de auditoria estão implementadas em nível básico. A variável `INGESTION_API_KEY`, quando configurada, exige `X-API-Key` no endpoint de escrita de telemetria. A assistência DeepSeek exige `DEEPSEEK_API_KEY` e `AI_DATA_SHARING_ENABLED=true`; por padrão, o compartilhamento de dados com provedores externos fica desativado. `X-Tenant-ID` apenas identifica registros de auditoria/telemetria: **não isola** componentes, dependências ou simulações e não é um mecanismo de autenticação.
+O isolamento por tenant, o controle de acesso por papéis, a ingestão de telemetria e a trilha de auditoria estão implementados em nível inicial. A variável `INGESTION_API_KEY`, quando configurada, exige `X-API-Key` no endpoint de escrita de telemetria. A assistência DeepSeek exige `DEEPSEEK_API_KEY` e `AI_DATA_SHARING_ENABLED=true`; por padrão, o compartilhamento de dados com provedores externos fica desativado. `X-Tenant-ID` apenas identifica registros de auditoria/telemetria: **não isola** componentes, dependências ou simulações e não é um mecanismo de autenticação.
 
-Ainda faltam OIDC/SSO, RBAC, isolamento multi-tenant real, retenção/exportação e proteção contra adulteração da auditoria, OpenTelemetry, alertas, topologia temporal e modelos de capacidade, integração opcional com DeepSeek além do endpoint de explicação básica, console interativo completo, testes de carga/segurança, SBOM, assinatura de releases e recuperação de backup. Consulte o [roadmap](docs/ROADMAP.md) para o estado atualizado.
+Ainda faltam OIDC/SSO, provisionamento/rotação/revogação gerenciada de chaves, retenção/exportação e proteção contra adulteração da auditoria, OpenTelemetry, alertas, topologia temporal e modelos de capacidade, integração opcional com DeepSeek além do endpoint de explicação básica, console interativo completo, testes de carga/segurança, SBOM, assinatura de releases e recuperação de backup. Execute `alembic upgrade head` antes de iniciar a API. A migração atribui dados legados ao tenant `default`. Consulte o [roadmap](docs/ROADMAP.md) para o estado atualizado.
 
 ## Instalação rápida
 
