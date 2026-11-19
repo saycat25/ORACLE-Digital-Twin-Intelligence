@@ -45,3 +45,10 @@ footer{padding:28px 0;color:#66758b;font:10px 'DM Mono',monospace}
 .credential-form input{width:150px;min-width:0;border:1px solid #34445c;border-radius:8px;background:#0b111c;color:#e9edf5;padding:9px 10px;font:11px Manrope,system-ui,sans-serif}
 .credential-form button{border:1px solid #4b947f;border-radius:8px;background:#183b37;color:#b8f6e4;padding:9px 12px;font:600 10px Manrope,system-ui,sans-serif;cursor:pointer}
 @media(max-width:760px){header{flex-wrap:wrap}.status{margin-left:auto}.credential-form{width:100%;margin-top:8px}.credential-form input{flex:1}}
+
+.graph-frame{width:100%;overflow:auto;border:1px solid #263348;border-radius:12px;background:linear-gradient(180deg,#0d1521,#0a1019);padding:12px}
+.graph-frame svg{display:block;width:100%;min-width:520px;max-height:520px}
+.graph-node{fill:#142235;stroke:#386b68;stroke-width:1.4}
+.graph-node-label{fill:#e6f1f7;font:600 12px Manrope,system-ui,sans-serif}
+.graph-node-meta{fill:#8da7b4;font:10px 'DM Mono',monospace}
+.graph-caption{margin:12px 0 0;color:#8294aa;font-size:11px;line-height:1.5}
