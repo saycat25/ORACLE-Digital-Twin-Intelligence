@@ -26,9 +26,9 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 
 ## Limits and next phases
 
-Telemetry ingestion and the audit trail are implemented at a basic level. When configured, `INGESTION_API_KEY` requires an `X-API-Key` header for telemetry writes. DeepSeek assistance requires `DEEPSEEK_API_KEY` and `AI_DATA_SHARING_ENABLED=true`; outbound sharing is disabled by default. `X-Tenant-ID` currently labels audit and telemetry records only; it does **not** isolate infrastructure nodes, dependency edges, or simulations, and is not an authentication mechanism.
+Tenant-isolated infrastructure records, role-based API authorization, telemetry ingestion and the audit trail are implemented at a baseline level. `ORACLE_API_KEYS` configures tenant-bound API credentials and RBAC roles (`viewer`, `operator`, `ingestor`, `admin`). In production, valid credentials are mandatory and the tenant comes from the matching credential, not from a user-selected tenant header. Development mode allows an unauthenticated local admin only when the API-key registry is empty. DeepSeek assistance requires `DEEPSEEK_API_KEY` and `AI_DATA_SHARING_ENABLED=true`; outbound sharing is disabled by default. `X-Tenant-ID` is an optional consistency check; with configured keys, the credential determines the tenant.
 
-OIDC/SSO, RBAC, true tenant isolation, audit retention/export and tamper protection, OpenTelemetry export, alerting, temporal topology and capacity models, deeper DeepSeek integration and full console workflows, load/security testing, SBOM, signed releases, and backup recovery remain open work. See the [roadmap](docs/ROADMAP.md) for the verified scope.
+OIDC/SSO, RBAC, OIDC/SSO and key lifecycle management, audit retention/export and tamper protection, OpenTelemetry export, alerting, temporal topology and capacity models, deeper DeepSeek integration and full console workflows, load/security testing, SBOM, signed releases, and backup recovery remain open work. See the [roadmap](docs/ROADMAP.md) for the verified scope.
 
 ## Quick start
 
