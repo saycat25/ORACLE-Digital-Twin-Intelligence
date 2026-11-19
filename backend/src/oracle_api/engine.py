@@ -49,3 +49,43 @@ def analyze_impact(nodes: list[dict], edges: list[dict], failed_node_id: int,
         for node_id, (score, hops, path) in best.items()
     ]
     return sorted(results, key=lambda item: (-item.impact_score, item.hop_distance, item.name))
+
+
+
+def assess_capacity(nodes: list[dict], demand_multiplier: float = 1.0) -> list[dict]:
+    """Project component load against declared capacity without inferring failover."""
+    if demand_multiplier <= 0 or demand_multiplier > 5:
+        raise ValueError("Demand multiplier must be greater than 0 and at most 5.")
+
+    results = []
+    for node in nodes:
+        capacity = float(node["capacity_units"])
+        current_load = float(node["current_load_units"])
+        if capacity <= 0 or current_load < 0:
+            raise ValueError("Node capacity must be positive and load cannot be negative.")
+        projected_load = current_load * demand_multiplier
+        utilization = projected_load / capacity
+        state = "over_capacity" if utilization >= 1.0 else (
+            "warning" if utilization >= 0.8 else "normal"
+        )
+        results.append(
+            {
+                "node_id": node["id"],
+                "name": node["name"],
+                "kind": node["kind"],
+                "capacity_units": round(capacity, 4),
+                "current_load_units": round(current_load, 4),
+                "projected_load_units": round(projected_load, 4),
+                "utilization_ratio": round(utilization, 4),
+                "headroom_units": round(max(0.0, capacity - projected_load), 4),
+                "status": state,
+            }
+        )
+    return sorted(
+        results,
+        key=lambda item: (
+            {"over_capacity": 0, "warning": 1, "normal": 2}[item["status"]],
+            -item["utilization_ratio"],
+            item["name"],
+        ),
+    )
