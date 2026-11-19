@@ -78,6 +78,7 @@ O simulador atual executa apenas cálculos sobre o grafo; não realiza alteraç�
 - [Política de segurança](SECURITY.md)
 - [Modelo de ameaças](docs/THREAT_MODEL.md)
 - [Manual operacional](docs/OPERATIONS.md)
+- [Histórico de versões](CHANGELOG.md)
 - [Como contribuir](CONTRIBUTING.md)
 - [Licença e atribuição](LICENSE) e [NOTICE](NOTICE)
 
