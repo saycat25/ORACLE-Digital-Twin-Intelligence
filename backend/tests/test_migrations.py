@@ -80,6 +80,8 @@ def test_legacy_single_tenant_database_is_migrated(tmp_path, monkeypatch):
     inspector = inspect(migrated_engine)
     for table in ("infrastructure_nodes", "dependency_edges", "simulation_records"):
         assert "tenant_id" in {column["name"] for column in inspector.get_columns(table)}
+    node_columns = {column["name"] for column in inspector.get_columns("infrastructure_nodes")}
+    assert {"capacity_units", "current_load_units"} <= node_columns
 
     with migrated_engine.begin() as connection:
         assert connection.scalar(
@@ -91,6 +93,12 @@ def test_legacy_single_tenant_database_is_migrated(tmp_path, monkeypatch):
         assert connection.scalar(
             text("SELECT tenant_id FROM simulation_records WHERE id = 1")
         ) == "default"
+        assert connection.scalar(
+            text("SELECT capacity_units FROM infrastructure_nodes WHERE id = 1")
+        ) == 100.0
+        assert connection.scalar(
+            text("SELECT current_load_units FROM infrastructure_nodes WHERE id = 1")
+        ) == 0.0
 
         # Same component name is permitted in another tenant after migration.
         connection.execute(
@@ -126,6 +134,8 @@ def test_database_already_at_tenant_migration_receives_snapshot_table(tmp_path, 
     assert {"tenant_id", "version", "snapshot_json"} <= {
         column["name"] for column in inspector.get_columns("topology_snapshots")
     }
+    node_columns = {column["name"] for column in inspector.get_columns("infrastructure_nodes")}
+    assert {"capacity_units", "current_load_units"} <= node_columns
     snapshot_indexes = {item["name"] for item in inspector.get_indexes("topology_snapshots")}
     assert "ix_topology_snapshots_tenant_id" in snapshot_indexes
     assert "ix_topology_snapshots_created_at" in snapshot_indexes
