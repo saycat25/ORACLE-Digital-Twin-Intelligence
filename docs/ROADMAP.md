@@ -5,7 +5,7 @@ A phase is complete only when its implementation, tests, documentation and CI ev
 | Phase | Scope | Status |
 |---|---|---|
 | 1. Foundation | Graph model, deterministic simulation, REST API, persistence, containers | Baseline implemented; expanded endpoint tests are being validated in CI |
-| 2. Enterprise identity | OIDC/SSO, RBAC, tenant isolation, secure sessions | Not implemented; tenant headers currently label audit/telemetry records only and are not an authorization boundary |
+| 2. Enterprise identity | OIDC/SSO, RBAC, tenant isolation, secure sessions | Tenant-scoped API keys, viewer/operator/ingestor/admin role gates, tenant-owned nodes/edges/simulations and filtered queries implemented; OIDC/SSO and managed key rotation remain open |
 | 3. Governance | Audit trail, retention, data export, policy controls | Basic append-on-write audit events and tenant-filtered audit reads implemented; immutability, retention and export controls remain open |
 | 4. Observability | OpenTelemetry traces/metrics, telemetry ingestion, health signals | Metric sample ingestion/query and health endpoint implemented; OpenTelemetry export, alerting and service-level signals remain open |
 | 5. Digital twin evolution | Temporal topology, scenario comparison, capacity models | Deterministic comparison of two failure scenarios implemented; topology versioning and capacity models remain open |
@@ -15,6 +15,6 @@ A phase is complete only when its implementation, tests, documentation and CI ev
 
 ## Security boundary
 
-The X-Tenant-ID header is an organizational label for audit and telemetry records only. It does **not** isolate infrastructure nodes, dependency edges or simulations, and it must not be treated as authentication or authorization. The optional INGESTION_API_KEY protects the telemetry ingestion endpoint when configured. Deployments exposed beyond localhost must configure a strong secret and add a proper identity provider and tenant-aware data model first.
+API credentials are configured with ORACLE_API_KEYS as token|tenant-id|role entries. When credentials are configured, the tenant comes from the matched credential and a mismatching X-Tenant-ID is rejected. In development/test only, empty ORACLE_API_KEYS enables a local admin convenience mode. Production startup refuses to proceed without configured API keys. OIDC/SSO, self-service key provisioning, rotation and revocation workflows remain future work. Run `alembic upgrade head` before deploying the schema changes; existing rows migrate to tenant `default`.
 
 Do not interpret a roadmap item as an existing feature.
