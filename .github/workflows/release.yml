@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build Python distributions and install runtime package
+        run: |
+          python -m pip install --upgrade build
+          python -m build backend --outdir dist
+          python -m pip install ./backend
+
+      - name: Generate CycloneDX SBOM
+        run: |
+          python -m pip install cyclonedx-bom
+          cyclonedx-py environment --sv 1.6 --of JSON -o dist/oracle-backend-sbom.cdx.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build web console
+        working-directory: frontend
+        run: |
+          npm install
+          npm run build
+
+      - name: Package web console
+        run: tar -czf dist/oracle-frontend-dist.tar.gz -C frontend dist
+
+      - name: Generate signed build provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: "dist/*"
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
