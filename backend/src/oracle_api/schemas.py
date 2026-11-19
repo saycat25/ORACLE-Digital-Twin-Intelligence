@@ -116,3 +116,15 @@ class ScenarioCompareResult(BaseModel):
     newly_impacted_in_b: list[int]
     shared_impacted: list[int]
     impact_score_deltas: list[ImpactDelta]
+
+
+class AIExplainRequest(BaseModel):
+    simulation_id: int = Field(gt=0)
+
+
+class AIExplainResponse(BaseModel):
+    simulation_id: int
+    provider: str
+    model: str
+    explanation: str
+    disclaimer: str
