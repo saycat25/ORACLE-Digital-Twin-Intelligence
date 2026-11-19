@@ -130,3 +130,18 @@ class AIExplainResponse(BaseModel):
     model: str
     explanation: str
     disclaimer: str
+
+
+class TopologySnapshotSummary(BaseModel):
+    id: int
+    tenant_id: str
+    version: int
+    node_count: int
+    edge_count: int
+    created_by: str
+    created_at: datetime
+
+
+class TopologySnapshotDetail(TopologySnapshotSummary):
+    nodes: list[NodeRead]
+    edges: list[EdgeRead]
