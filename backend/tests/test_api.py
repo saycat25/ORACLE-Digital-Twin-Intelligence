@@ -122,3 +122,63 @@ def test_ai_explanation_requires_server_side_api_key(monkeypatch):
     with TestClient(app) as client:
         response = client.post("/api/v1/ai/explain", json={"simulation_id": 999999})
     assert response.status_code == 503
+
+
+def test_api_key_rbac_and_tenant_isolation(monkeypatch):
+    monkeypatch.setattr(
+        settings,
+        "api_keys",
+        "viewer-a|tenant-a|viewer;operator-a|tenant-a|operator;"
+        "admin-a|tenant-a|admin;admin-b|tenant-b|admin",
+    )
+    with TestClient(app) as client:
+        denied_write = client.post(
+            "/api/v1/nodes",
+            headers={"X-API-Key": "viewer-a"},
+            json={"name": "blocked-by-rbac", "kind": "service"},
+        )
+        assert denied_write.status_code == 403
+
+        created = client.post(
+            "/api/v1/nodes",
+            headers={"Authorization": "Bearer operator-a"},
+            json={"name": "isolated-component", "kind": "service", "criticality": 0.7},
+        )
+        assert created.status_code == 201
+        assert created.json()["tenant_id"] == "tenant-a"
+
+        same_name_other_tenant = client.post(
+            "/api/v1/nodes",
+            headers={"X-API-Key": "admin-b"},
+            json={"name": "isolated-component", "kind": "database", "criticality": 0.5},
+        )
+        assert same_name_other_tenant.status_code == 201
+        assert same_name_other_tenant.json()["tenant_id"] == "tenant-b"
+
+        tenant_a_nodes = client.get("/api/v1/nodes", headers={"X-API-Key": "viewer-a"})
+        tenant_b_nodes = client.get("/api/v1/nodes", headers={"X-API-Key": "admin-b"})
+        assert [node["tenant_id"] for node in tenant_a_nodes.json()] == ["tenant-a"]
+        assert [node["tenant_id"] for node in tenant_b_nodes.json()] == ["tenant-b"]
+
+        forged_tenant = client.get(
+            "/api/v1/nodes",
+            headers={"X-API-Key": "viewer-a", "X-Tenant-ID": "tenant-b"},
+        )
+        assert forged_tenant.status_code == 403
+
+        foreign_simulation = client.post(
+            "/api/v1/simulations",
+            headers={"X-API-Key": "operator-a"},
+            json={
+                "failed_node_id": same_name_other_tenant.json()["id"],
+                "failure_mode": "unavailable",
+            },
+        )
+        assert foreign_simulation.status_code == 404
+
+
+def test_invalid_api_key_is_rejected_when_credentials_are_configured(monkeypatch):
+    monkeypatch.setattr(settings, "api_keys", "valid-token|tenant-a|viewer")
+    with TestClient(app) as client:
+        response = client.get("/api/v1/nodes", headers={"X-API-Key": "invalid-token"})
+    assert response.status_code == 401
