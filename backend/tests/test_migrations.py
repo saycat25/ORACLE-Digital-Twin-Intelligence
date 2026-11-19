@@ -104,3 +104,29 @@ def test_legacy_single_tenant_database_is_migrated(tmp_path, monkeypatch):
 
     migrated_engine.dispose()
     legacy_engine.dispose()
+
+
+def test_database_already_at_tenant_migration_receives_snapshot_table(tmp_path, monkeypatch):
+    database_path = tmp_path / "tenant-scoped-before-snapshots.db"
+    database_url = f"sqlite:///{database_path.as_posix()}"
+    existing_engine = create_engine(database_url)
+    with existing_engine.begin() as connection:
+        connection.execute(
+            text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL PRIMARY KEY)")
+        )
+        connection.execute(
+            text("INSERT INTO alembic_version (version_num) VALUES ('0001_tenant_scoping')")
+        )
+
+    monkeypatch.setattr(settings, "database_url", database_url)
+    command.upgrade(Config("alembic.ini"), "head")
+
+    inspector = inspect(create_engine(database_url))
+    assert "topology_snapshots" in inspector.get_table_names()
+    assert {"tenant_id", "version", "snapshot_json"} <= {
+        column["name"] for column in inspector.get_columns("topology_snapshots")
+    }
+    snapshot_indexes = {item["name"] for item in inspector.get_indexes("topology_snapshots")}
+    assert "ix_topology_snapshots_tenant_id" in snapshot_indexes
+    assert "ix_topology_snapshots_created_at" in snapshot_indexes
+    existing_engine.dispose()
