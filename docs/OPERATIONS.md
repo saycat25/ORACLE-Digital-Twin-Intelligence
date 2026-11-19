@@ -44,7 +44,8 @@ ORACLE_CONFIRM_RESTORE=YES bash scripts/restore-postgres.sh ./backups/oracle-ora
 The restore script verifies the adjacent SHA-256 file, stops the API to prevent concurrent writes, restores with `pg_restore --clean`, and starts the API only after a successful restore. On failure, the API remains stopped. After recovery, verify:
 
 - API health and Alembic head revision.
-- Expected tenant IDs, node/edge counts, telemetry and topology snapshot history.\n- The audit integrity report at GET /api/v1/audit/verify; pre-HMAC legacy events will be shown as unverified.
+- Expected tenant IDs, node/edge counts, telemetry and topology snapshot history.
+- The audit integrity report at GET /api/v1/audit/verify; pre-HMAC legacy events will be shown as unverified.
 - A sample simulation, capacity assessment and a read from each expected tenant.
 - Database logs and application errors.
 
