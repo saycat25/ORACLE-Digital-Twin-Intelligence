@@ -181,6 +181,17 @@ def test_api_key_rbac_and_tenant_isolation(monkeypatch):
         metrics_denied = client.get("/metrics", headers={"X-API-Key": "viewer-a"})
         assert metrics_denied.status_code == 403
 
+        cross_tenant_edge = client.post(
+            "/api/v1/edges",
+            headers={"X-API-Key": "operator-a"},
+            json={
+                "source_id": created.json()["id"],
+                "target_id": same_name_other_tenant.json()["id"],
+                "criticality": 0.5,
+            },
+        )
+        assert cross_tenant_edge.status_code == 404
+
         foreign_simulation = client.post(
             "/api/v1/simulations",
             headers={"X-API-Key": "operator-a"},
@@ -190,6 +201,21 @@ def test_api_key_rbac_and_tenant_isolation(monkeypatch):
             },
         )
         assert foreign_simulation.status_code == 404
+
+        tenant_b_simulation = client.post(
+            "/api/v1/simulations",
+            headers={"X-API-Key": "admin-b"},
+            json={
+                "failed_node_id": same_name_other_tenant.json()["id"],
+                "failure_mode": "unavailable",
+            },
+        )
+        assert tenant_b_simulation.status_code == 201
+        foreign_simulation_read = client.get(
+            f"/api/v1/simulations/{tenant_b_simulation.json()['simulation_id']}",
+            headers={"X-API-Key": "viewer-a"},
+        )
+        assert foreign_simulation_read.status_code == 404
 
 
 def test_invalid_api_key_is_rejected_when_credentials_are_configured(monkeypatch):
