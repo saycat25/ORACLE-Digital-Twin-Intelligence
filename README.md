@@ -14,6 +14,7 @@ ORACLE models infrastructure as a directed dependency graph. Nodes represent ser
 - Basic telemetry sample ingestion and querying by component and metric.
 - Basic audit events for component/dependency creation, simulations, and telemetry ingestion.
 - Admin-protected Prometheus-compatible HTTP request metrics.
+- Tenant-scoped JSON audit export restricted to administrators.
 - Deterministic comparison of two failure scenarios, including newly impacted/shared nodes and score deltas.
 - Optional DeepSeek explanations for saved simulations, protected by an explicit server-side data-sharing opt-in.
 - Scenario comparison and AI explanation endpoints documented automatically through FastAPI OpenAPI.
