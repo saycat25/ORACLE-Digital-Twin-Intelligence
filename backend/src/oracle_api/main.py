@@ -6,7 +6,7 @@ from typing import Annotated
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -20,6 +20,7 @@ from oracle_api.models import (
     InfrastructureNode,
     SimulationRecord,
     TelemetrySample,
+    TopologySnapshot,
     utc_now,
 )
 from oracle_api.schemas import (
@@ -36,6 +37,8 @@ from oracle_api.schemas import (
     SimulationResult,
     TelemetryCreate,
     TelemetryRead,
+    TopologySnapshotDetail,
+    TopologySnapshotSummary,
 )
 from oracle_api.security import Principal, get_principal, require_roles
 
@@ -138,6 +141,73 @@ def record_audit(
 
 
 @app.get("/health", tags=["operations"])
+
+
+def create_topology_snapshot(session: Session, tenant_id: str, actor: str) -> TopologySnapshot:
+    nodes = list(
+        session.scalars(
+            select(InfrastructureNode)
+            .where(InfrastructureNode.tenant_id == tenant_id)
+            .order_by(InfrastructureNode.id)
+        )
+    )
+    edges = list(
+        session.scalars(
+            select(DependencyEdge)
+            .where(DependencyEdge.tenant_id == tenant_id)
+            .order_by(DependencyEdge.id)
+        )
+    )
+    latest_version = session.scalar(
+        select(func.max(TopologySnapshot.version)).where(TopologySnapshot.tenant_id == tenant_id)
+    )
+    payload = {
+        "nodes": [
+            {
+                "id": node.id,
+                "tenant_id": node.tenant_id,
+                "name": node.name,
+                "kind": node.kind,
+                "criticality": node.criticality,
+                "description": node.description,
+                "created_at": node.created_at.isoformat(),
+            }
+            for node in nodes
+        ],
+        "edges": [
+            {
+                "id": edge.id,
+                "tenant_id": edge.tenant_id,
+                "source_id": edge.source_id,
+                "target_id": edge.target_id,
+                "criticality": edge.criticality,
+                "description": edge.description,
+            }
+            for edge in edges
+        ],
+    }
+    snapshot = TopologySnapshot(
+        tenant_id=tenant_id,
+        version=(latest_version or 0) + 1,
+        node_count=len(nodes),
+        edge_count=len(edges),
+        snapshot_json=json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        created_by=actor,
+    )
+    session.add(snapshot)
+    session.flush()
+    record_audit(
+        session,
+        tenant_id,
+        "topology.snapshot.created",
+        "topology_snapshot",
+        snapshot.id,
+        {"version": snapshot.version, "nodes": snapshot.node_count, "edges": snapshot.edge_count},
+        actor=actor,
+    )
+    return snapshot
+
+
 def health():
     return {"status": "ok", "service": "oracle-api", "version": app.version}
 
@@ -161,6 +231,7 @@ def create_node(
             session, principal.tenant_id, "node.created", "node", node.id,
             {"name": node.name}, actor=principal.actor,
         )
+        create_topology_snapshot(session, principal.tenant_id, principal.actor)
         session.commit()
     except IntegrityError as exc:
         session.rollback()
@@ -217,6 +288,7 @@ def create_edge(
             {"source_id": edge.source_id, "target_id": edge.target_id},
             actor=principal.actor,
         )
+        create_topology_snapshot(session, principal.tenant_id, principal.actor)
         session.commit()
     except IntegrityError as exc:
         session.rollback()
@@ -320,6 +392,59 @@ def run_simulation(
     session.commit()
     session.refresh(record)
     return result.model_copy(update={"simulation_id": record.id})
+
+
+@app.get(
+    f"{settings.api_prefix}/topology/snapshots",
+    response_model=list[TopologySnapshotSummary],
+    tags=["topology"],
+    dependencies=[Depends(require_roles("viewer", "operator", "admin", "ingestor"))],
+)
+def list_topology_snapshots(
+    tenant_id: TenantId,
+    session: DbSession,
+    limit: int = Query(default=50, ge=1, le=500),
+):
+    query = (
+        select(TopologySnapshot)
+        .where(TopologySnapshot.tenant_id == tenant_id)
+        .order_by(TopologySnapshot.version.desc())
+        .limit(limit)
+    )
+    return list(session.scalars(query))
+
+
+@app.get(
+    f"{settings.api_prefix}/topology/snapshots/{{snapshot_id}}",
+    response_model=TopologySnapshotDetail,
+    tags=["topology"],
+    dependencies=[Depends(require_roles("viewer", "operator", "admin", "ingestor"))],
+)
+def get_topology_snapshot(
+    snapshot_id: int,
+    tenant_id: TenantId,
+    session: DbSession,
+):
+    snapshot = session.scalar(
+        select(TopologySnapshot).where(
+            TopologySnapshot.id == snapshot_id,
+            TopologySnapshot.tenant_id == tenant_id,
+        )
+    )
+    if snapshot is None:
+        raise HTTPException(status_code=404, detail="Topology snapshot was not found.")
+    data = json.loads(snapshot.snapshot_json)
+    return TopologySnapshotDetail(
+        id=snapshot.id,
+        tenant_id=snapshot.tenant_id,
+        version=snapshot.version,
+        node_count=snapshot.node_count,
+        edge_count=snapshot.edge_count,
+        created_by=snapshot.created_by,
+        created_at=snapshot.created_at,
+        nodes=data["nodes"],
+        edges=data["edges"],
+    )
 
 
 @app.get(
