@@ -40,7 +40,7 @@ The `/metrics` endpoint exports request totals and duration summaries in Prometh
 
 Nodes accept `capacity_units` and `current_load_units`. `GET /api/v1/capacity/assessment?demand_multiplier=1.25` calculates projected utilization and headroom; values at or above 80% are warnings and values at or above 100% are marked over capacity. This model uses operator-declared capacity/load only. It does not assume automatic failover, traffic routing or unobserved spare capacity.
 
-## Telemetry ingestion
+## Audit integrity and credentials
 
 Set AUDIT_HMAC_KEY to at least 32 cryptographically random bytes; production startup requires it and uses it to HMAC-sign each audit event. Keep the key outside the database and repository. Existing audit events from before this migration have no digest and are reported as legacy/unverified. Use GET /api/v1/audit/verify to detect changes to signed records.
 
@@ -50,7 +50,11 @@ Viewer: read inventory/topology, simulations and telemetry. Operator: viewer acc
 
 In development/test mode only, when ORACLE_API_KEYS is empty, requests are treated as an admin in the tenant supplied by X-Tenant-ID (or default). In production, ORACLE_API_KEYS is mandatory and the API refuses to start without it. Do not use development mode on a public deployment.
 
-Every component or dependency creation records a new topology version. Historical snapshots can be listed and read, but are not restored by this release. Run `alembic upgrade head` before starting the service; migration `0003_node_capacity` adds capacity fields with conservative defaults for existing nodes. Migration 0001 assigns existing legacy records to tenant `default`; migrations 0002–0004 add topology history, capacity fields and audit integrity hashes. Legacy audit events retain an empty digest and are marked unverified until rotated or archived separately.
+Every component or dependency creation records a new topology version. Historical snapshots can be listed and read, but are not restored by this release. Run `alembic upgrade head` before starting the service; migration `0003_node_capacity` adds capacity fields with conservative defaults for existing nodes. Migration 0001 assigns existing legacy records to tenant `default`; migrations 0002–0004 add topology history, capacity fields and audit integrity hashes. Legacy audit events retain an empty digest and are reported as unverified. HMAC signatures detect modifications to signed records, but do not by themselves detect deletion/reordering; use an external append-only archive for that guarantee.
+
+## Telemetry ingestion
+
+The `POST /api/v1/telemetry` endpoint accepts `node_id`, `metric`, `value`, `unit` and optional `observed_at`.
 
 ## Optional DeepSeek assistance
 
