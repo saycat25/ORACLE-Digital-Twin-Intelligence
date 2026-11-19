@@ -94,6 +94,12 @@ async def collect_http_metrics(request: Request, call_next):
         response.status_code,
         time.perf_counter() - started,
     )
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if request.url.path.startswith(settings.api_prefix):
+        response.headers.setdefault("Cache-Control", "no-store")
     return response
 
 
