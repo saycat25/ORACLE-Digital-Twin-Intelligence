@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./oracle.db"
     api_prefix: str = "/api/v1"
     cors_origins: str = "http://localhost:5173"
+    ingestion_api_key: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:
