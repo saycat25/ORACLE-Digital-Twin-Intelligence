@@ -58,3 +58,50 @@ def test_topology_endpoint_returns_nodes_and_edges():
         response = client.get("/api/v1/topology")
     assert response.status_code == 200
     assert set(response.json()) == {"nodes", "edges"}
+
+
+def test_scenario_comparison_reports_impact_differences():
+    tenant = f"scenario-{uuid4().hex}"
+    with TestClient(app) as client:
+        consumer = client.post(
+            "/api/v1/nodes",
+            headers={"X-Tenant-ID": tenant},
+            json={"name": f"consumer-{uuid4().hex[:10]}", "kind": "service", "criticality": 0.9},
+        )
+        dependency = client.post(
+            "/api/v1/nodes",
+            headers={"X-Tenant-ID": tenant},
+            json={"name": f"dependency-{uuid4().hex[:10]}", "kind": "database", "criticality": 1.0},
+        )
+        isolated = client.post(
+            "/api/v1/nodes",
+            headers={"X-Tenant-ID": tenant},
+            json={"name": f"isolated-{uuid4().hex[:10]}", "kind": "worker", "criticality": 0.3},
+        )
+        assert consumer.status_code == dependency.status_code == isolated.status_code == 201
+        edge = client.post(
+            "/api/v1/edges",
+            headers={"X-Tenant-ID": tenant},
+            json={
+                "source_id": consumer.json()["id"],
+                "target_id": dependency.json()["id"],
+                "criticality": 0.95,
+            },
+        )
+        assert edge.status_code == 201
+
+        compared = client.post(
+            "/api/v1/scenarios/compare",
+            headers={"X-Tenant-ID": tenant},
+            json={
+                "scenario_a": {"failed_node_id": dependency.json()["id"], "failure_mode": "unavailable"},
+                "scenario_b": {"failed_node_id": isolated.json()["id"], "failure_mode": "unavailable"},
+            },
+        )
+        assert compared.status_code == 200
+        result = compared.json()
+        assert result["newly_impacted_in_a"] == [consumer.json()["id"]]
+        assert result["newly_impacted_in_b"] == []
+        assert result["impact_score_deltas"][0]["score_a"] > 0
+        events = client.get("/api/v1/audit", headers={"X-Tenant-ID": tenant}).json()
+        assert "scenario.compared" in {event["action"] for event in events}
