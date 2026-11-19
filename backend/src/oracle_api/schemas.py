@@ -17,6 +17,7 @@ class NodeCreate(BaseModel):
 class NodeRead(NodeCreate):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    tenant_id: str
     created_at: datetime
 
 
@@ -36,6 +37,7 @@ class EdgeCreate(BaseModel):
 class EdgeRead(EdgeCreate):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    tenant_id: str
 
 
 class SimulationCreate(BaseModel):
