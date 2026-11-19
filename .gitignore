@@ -10,3 +10,8 @@ dist/
 coverage.xml
 htmlcov/
 .DS_Store
+
+# Local database backups contain sensitive infrastructure data.
+backups/
+*.dump
+*.dump.sha256
