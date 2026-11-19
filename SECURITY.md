@@ -15,4 +15,4 @@ CodeQL scans for Python and TypeScript/JavaScript, API security headers, depende
 
 ## Tenant credentials and roles
 
-Configure ORACLE_API_KEYS as semicolon-separated token|tenant-id|role entries. Keep these values in a secret manager; never commit live credentials. Production startup is blocked when the registry is empty. Rotate credentials by deploying a replacement registry and removing old entries. OIDC/SSO and self-service credential lifecycle are not yet implemented.
+Configure AUDIT_HMAC_KEY with at least 32 cryptographically random bytes in production. Keep it outside the database and repository, and back it up separately. New audit events are signed with HMAC-SHA256; legacy events created before the migration remain unverified. Admins can inspect GET /api/v1/audit/verify.\n\nConfigure ORACLE_API_KEYS as semicolon-separated token|tenant-id|role entries. Keep these values in a secret manager; never commit live credentials. Production startup is blocked when the registry is empty. Rotate credentials by deploying a replacement registry and removing old entries. OIDC/SSO and self-service credential lifecycle are not yet implemented.
