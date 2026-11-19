@@ -3,10 +3,13 @@ services:
     build:
       context: ./backend
     environment:
-      ORACLE_ENV: development
+      ORACLE_ENV: ${ORACLE_ENV:-development}
+      ORACLE_API_KEYS: ${ORACLE_API_KEYS:-}
       DATABASE_URL: postgresql+psycopg://oracle:oracle_dev_only@db:5432/oracle
       API_PREFIX: /api/v1
       CORS_ORIGINS: http://localhost:5173
+      AI_DATA_SHARING_ENABLED: ${AI_DATA_SHARING_ENABLED:-false}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
     ports:
       - "8000:8000"
     depends_on:
