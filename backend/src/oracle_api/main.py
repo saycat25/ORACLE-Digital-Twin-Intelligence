@@ -1,6 +1,7 @@
 import json
 from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
@@ -19,6 +20,8 @@ from oracle_api.models import (
     utc_now,
 )
 from oracle_api.schemas import (
+    AIExplainRequest,
+    AIExplainResponse,
     AuditEventRead,
     EdgeCreate,
     EdgeRead,
@@ -364,4 +367,112 @@ def compare_scenarios(
         newly_impacted_in_b=sorted(ids_b - ids_a),
         shared_impacted=sorted(ids_a & ids_b),
         impact_score_deltas=deltas,
+    )
+
+
+
+@app.post(
+    f"{settings.api_prefix}/ai/explain",
+    response_model=AIExplainResponse,
+    tags=["ai-assistance"],
+)
+def explain_simulation_with_ai(
+    payload: AIExplainRequest,
+    tenant_id: str = Depends(resolve_tenant),
+    session: Session = Depends(get_session),  # noqa: B008
+):
+    if not settings.ai_data_sharing_enabled:
+        raise HTTPException(
+            status_code=403,
+            detail="AI data sharing is disabled. Enable it explicitly in server configuration.",
+        )
+    if not settings.deepseek_api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="DeepSeek is not configured. Set DEEPSEEK_API_KEY on the API server.",
+        )
+
+    record = session.get(SimulationRecord, payload.simulation_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Simulation was not found.")
+    simulation_data = json.loads(record.result_json)
+    prompt_data = {
+        "failed_node_id": record.failed_node_id,
+        "failure_mode": record.failure_mode,
+        "total_impacted": simulation_data.get("total_impacted", 0),
+        "impacted_nodes": simulation_data.get("impacted_nodes", []),
+        "methodology": simulation_data.get("methodology", ""),
+    }
+    request_body = {
+        "model": settings.deepseek_model,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are an infrastructure resilience analyst. Explain only what is "
+                    "supported by the supplied deterministic simulation data. Separate "
+                    "observed graph facts from hypotheses. Do not claim to predict outage "
+                    "probability, root cause, real capacity, or real-world availability. "
+                    "Provide concise prioritized validation and mitigation suggestions. "
+                    "State that this is decision support and requires human review."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Explain this ORACLE simulation in Brazilian Portuguese. "
+                    "Use the supplied component names, impact scores, paths and hop distances. "
+                    "Do not invent topology or telemetry. Data: "
+                    + json.dumps(prompt_data, ensure_ascii=False)
+                ),
+            },
+        ],
+        "temperature": 0.2,
+        "max_tokens": 900,
+        "stream": False,
+        "thinking": {"type": "disabled"},
+    }
+    endpoint = settings.deepseek_base_url.rstrip("/") + "/chat/completions"
+    try:
+        with httpx.Client(timeout=settings.deepseek_timeout_seconds) as client:
+            upstream = client.post(
+                endpoint,
+                json=request_body,
+                headers={"Authorization": f"Bearer {settings.deepseek_api_key}"},
+            )
+            upstream.raise_for_status()
+            response_data = upstream.json()
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"DeepSeek returned HTTP {exc.response.status_code}.",
+        ) from exc
+    except (httpx.HTTPError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail="DeepSeek request failed.") from exc
+
+    try:
+        explanation = response_data["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise HTTPException(status_code=502, detail="DeepSeek returned an unexpected response.") from exc
+    if not isinstance(explanation, str) or not explanation.strip():
+        raise HTTPException(status_code=502, detail="DeepSeek returned an empty explanation.")
+
+    record_audit(
+        session,
+        tenant_id,
+        "ai.explanation.generated",
+        "simulation",
+        record.id,
+        {"provider": "deepseek", "model": settings.deepseek_model},
+    )
+    session.commit()
+    return AIExplainResponse(
+        simulation_id=record.id,
+        provider="DeepSeek",
+        model=settings.deepseek_model,
+        explanation=explanation.strip(),
+        disclaimer=(
+            "Análise gerada por IA a partir do resultado da simulação; não é previsão, "
+            "diagnóstico de causa raiz ou substituto de validação por um especialista."
+        ),
     )
