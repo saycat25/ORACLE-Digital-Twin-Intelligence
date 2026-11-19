@@ -28,10 +28,10 @@ from oracle_api.schemas import (
     EdgeRead,
     NodeCreate,
     NodeRead,
-    SimulationCreate,
-    SimulationResult,
     ScenarioCompareCreate,
     ScenarioCompareResult,
+    SimulationCreate,
+    SimulationResult,
     TelemetryCreate,
     TelemetryRead,
 )
@@ -135,8 +135,8 @@ def list_nodes(session: DbSession):
 )
 def create_edge(
     payload: EdgeCreate,
-    tenant_id: str = Depends(resolve_tenant),
-    session: Session = Depends(get_session),
+    tenant_id: TenantId,
+    session: DbSession,
 ):
     source = session.get(InfrastructureNode, payload.source_id)
     target = session.get(InfrastructureNode, payload.target_id)
@@ -159,12 +159,12 @@ def create_edge(
 
 
 @app.get(f"{settings.api_prefix}/edges", response_model=list[EdgeRead])
-def list_edges(session: Session = Depends(get_session)):
+def list_edges(session: DbSession):
     return list(session.scalars(select(DependencyEdge).order_by(DependencyEdge.id)))
 
 
 @app.get(f"{settings.api_prefix}/topology", tags=["topology"])
-def get_topology(session: Session = Depends(get_session)):
+def get_topology(session: DbSession):
     nodes = list(session.scalars(select(InfrastructureNode).order_by(InfrastructureNode.id)))
     edges = list(session.scalars(select(DependencyEdge).order_by(DependencyEdge.id)))
     return {
@@ -180,8 +180,8 @@ def get_topology(session: Session = Depends(get_session)):
 )
 def run_simulation(
     payload: SimulationCreate,
-    tenant_id: str = Depends(resolve_tenant),
-    session: Session = Depends(get_session),  # noqa: B008
+    tenant_id: TenantId,
+    session: DbSession,
 ):
     if session.get(InfrastructureNode, payload.failed_node_id) is None:
         raise HTTPException(status_code=404, detail="Failed node was not found.")
@@ -220,7 +220,7 @@ def run_simulation(
 
 
 @app.get(f"{settings.api_prefix}/simulations/{{simulation_id}}", response_model=SimulationResult)
-def get_simulation(simulation_id: int, session: Session = Depends(get_session)):
+def get_simulation(simulation_id: int, session: DbSession):
     record = session.get(SimulationRecord, simulation_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Simulation was not found.")
@@ -238,8 +238,8 @@ def get_simulation(simulation_id: int, session: Session = Depends(get_session)):
 )
 def ingest_telemetry(
     payload: TelemetryCreate,
-    tenant_id: str = Depends(resolve_tenant),
-    session: Session = Depends(get_session),  # noqa: B008
+    tenant_id: TenantId,
+    session: DbSession,
 ):
     if session.get(InfrastructureNode, payload.node_id) is None:
         raise HTTPException(status_code=404, detail="Telemetry node was not found.")
@@ -267,8 +267,8 @@ def list_telemetry(
     node_id: int | None = Query(default=None, gt=0),
     metric: str | None = Query(default=None, min_length=1, max_length=80),
     limit: int = Query(default=100, ge=1, le=1000),
-    tenant_id: str = Depends(resolve_tenant),
-    session: Session = Depends(get_session),  # noqa: B008
+    tenant_id: TenantId,
+    session: DbSession,
 ):
     query = select(TelemetrySample).where(TelemetrySample.tenant_id == tenant_id)
     if node_id is not None:
@@ -283,8 +283,8 @@ def list_telemetry(
 def list_audit_events(
     limit: int = Query(default=100, ge=1, le=1000),
     action: str | None = Query(default=None, min_length=1, max_length=80),
-    tenant_id: str = Depends(resolve_tenant),
-    session: Session = Depends(get_session),  # noqa: B008
+    tenant_id: TenantId,
+    session: DbSession,
 ):
     query = select(AuditEvent).where(AuditEvent.tenant_id == tenant_id)
     if action is not None:
@@ -301,8 +301,8 @@ def list_audit_events(
 )
 def compare_scenarios(
     payload: ScenarioCompareCreate,
-    tenant_id: str = Depends(resolve_tenant),
-    session: Session = Depends(get_session),  # noqa: B008
+    tenant_id: TenantId,
+    session: DbSession,
 ):
     nodes = [
         {"id": n.id, "name": n.name, "kind": n.kind, "criticality": n.criticality}
@@ -383,8 +383,8 @@ def compare_scenarios(
 )
 def explain_simulation_with_ai(
     payload: AIExplainRequest,
-    tenant_id: str = Depends(resolve_tenant),
-    session: Session = Depends(get_session),  # noqa: B008
+    tenant_id: TenantId,
+    session: DbSession,
 ):
     if not settings.ai_data_sharing_enabled:
         raise HTTPException(
