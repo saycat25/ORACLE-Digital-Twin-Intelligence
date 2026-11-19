@@ -11,6 +11,8 @@ class NodeCreate(BaseModel):
     name: str = Field(min_length=2, max_length=120, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._-]*$")
     kind: NodeKind
     criticality: float = Field(default=0.5, ge=0.0, le=1.0)
+    capacity_units: float = Field(default=100.0, gt=0.0, allow_inf_nan=False)
+    current_load_units: float = Field(default=0.0, ge=0.0, allow_inf_nan=False)
     description: str = Field(default="", max_length=2000)
 
 
@@ -145,3 +147,23 @@ class TopologySnapshotSummary(BaseModel):
 class TopologySnapshotDetail(TopologySnapshotSummary):
     nodes: list[NodeRead]
     edges: list[EdgeRead]
+
+
+class CapacityAssessmentItem(BaseModel):
+    node_id: int
+    name: str
+    kind: str
+    capacity_units: float
+    current_load_units: float
+    projected_load_units: float
+    utilization_ratio: float
+    headroom_units: float
+    status: Literal["normal", "warning", "over_capacity"]
+
+
+class CapacityAssessmentResult(BaseModel):
+    demand_multiplier: float
+    components_assessed: int
+    over_capacity: int
+    warnings: int
+    components: list[CapacityAssessmentItem]
