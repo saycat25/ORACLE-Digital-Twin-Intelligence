@@ -10,7 +10,10 @@ O ORACLE representa uma infraestrutura como um grafo direcionado. Os nós repres
 
 ## Implementado nesta versão
 
-- API REST com FastAPI para componentes, dependências e simulações.
+- API REST com FastAPI para componentes, dependências, topologia e simulações.
+- Endpoint de ingestão e consulta de amostras de telemetria por componente/métrica.
+- Trilha básica de auditoria para criação de componentes, dependências, simulações e ingestão de telemetria.
+- Exportação da topologia atual como snapshot JSON pela API.
 - Persistência SQLAlchemy, com SQLite por padrão e suporte a PostgreSQL.
 - Motor determinístico e explicável de análise de impacto.
 - Base de console web em React + TypeScript.
@@ -18,9 +21,11 @@ O ORACLE representa uma infraestrutura como um grafo direcionado. Os nós repres
 - Testes com Pytest e análise estática com Ruff na integração contínua.
 - Documentação em português e inglês.
 
-## Capacidades empresariais planejadas
+## Limites e próximas fases
 
-Os itens abaixo são objetivos de desenvolvimento e não devem ser considerados implementados até que existam código e testes correspondentes: OIDC/SSO, isolamento multi-tenant, RBAC granular, trilha de auditoria imutável, ingestão de telemetria, métricas e traces OpenTelemetry, topologia temporal, explicações assistidas por IA, limitação de requisições, testes de carga e segurança, SBOM e releases assinadas.
+A ingestão de telemetria e a trilha de auditoria estão implementadas em nível básico. A variável `INGESTION_API_KEY`, quando configurada, exige `X-API-Key` no endpoint de escrita de telemetria. `X-Tenant-ID` apenas identifica registros de auditoria/telemetria: **não isola** componentes, dependências ou simulações e não é um mecanismo de autenticação.
+
+Ainda faltam OIDC/SSO, RBAC, isolamento multi-tenant real, retenção/exportação e proteção contra adulteração da auditoria, OpenTelemetry, alertas, topologia temporal, comparação de cenários, modelos de capacidade, integração opcional com DeepSeek, console interativo completo, testes de carga/segurança, SBOM, assinatura de releases e recuperação de backup. Consulte o [roadmap](docs/ROADMAP.md) para o estado atualizado.
 
 ## Instalação rápida
 
