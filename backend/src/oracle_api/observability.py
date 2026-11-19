@@ -66,7 +66,7 @@ def configure_tracing() -> TracerProvider:
         resource=Resource.create(
             {
                 "service.name": settings.otel_service_name,
-                "service.version": "0.3.0",
+                "service.version": "0.4.0",
             }
         )
     )
