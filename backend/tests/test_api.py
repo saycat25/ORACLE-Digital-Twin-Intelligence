@@ -8,6 +8,11 @@ from oracle_api import main as oracle_main
 from oracle_api.main import app
 
 
+def test_oracle_api_keys_environment_alias_is_loaded():
+    configured = Settings(_env_file=None, ORACLE_API_KEYS="opaque-token|tenant-a|admin")
+    assert configured.api_keys == "opaque-token|tenant-a|admin"
+
+
 def test_health_endpoint():
     with TestClient(app) as client:
         response = client.get("/health")
