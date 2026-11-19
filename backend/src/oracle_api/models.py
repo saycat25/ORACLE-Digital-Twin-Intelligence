@@ -21,6 +21,8 @@ class InfrastructureNode(Base):
     name: Mapped[str] = mapped_column(String(120), index=True)
     kind: Mapped[str] = mapped_column(String(40), index=True)
     criticality: Mapped[float] = mapped_column(Float, default=0.5)
+    capacity_units: Mapped[float] = mapped_column(Float, default=100.0)
+    current_load_units: Mapped[float] = mapped_column(Float, default=0.0)
     description: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
