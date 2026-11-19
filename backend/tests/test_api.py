@@ -402,6 +402,8 @@ def test_topology_snapshots_capture_each_graph_change_and_are_tenant_scoped():
         assert latest.json()["node_count"] == 2
         assert latest.json()["edge_count"] == 1
         assert len(latest.json()["edges"]) == 1
+        assert {"capacity_units", "current_load_units"} <= set(latest.json()["nodes"][0])
+
 
         foreign = client.get(
             f"/api/v1/topology/snapshots/{latest_id}",
