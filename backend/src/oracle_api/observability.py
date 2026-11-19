@@ -50,3 +50,32 @@ def render_prometheus_metrics() -> str:
         lines.append(f"oracle_http_request_duration_seconds_sum{{{labels}}} {total:.9f}")
 
     return "\n".join(lines) + "\n"
+
+
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+from oracle_api.config import settings
+
+
+def configure_tracing() -> TracerProvider:
+    provider = TracerProvider(
+        resource=Resource.create(
+            {
+                "service.name": settings.otel_service_name,
+                "service.version": "0.3.0",
+            }
+        )
+    )
+    endpoint = settings.otel_exporter_otlp_traces_endpoint.strip()
+    if endpoint:
+        provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint)))
+    trace.set_tracer_provider(provider)
+    return provider
+
+
+tracer_provider = configure_tracing()
+tracer = trace.get_tracer("oracle_api.http")
