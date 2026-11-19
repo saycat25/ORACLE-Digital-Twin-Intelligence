@@ -19,7 +19,8 @@ def test_failure_propagates_to_transitive_consumers():
     nodes, edges = sample_graph()
     result = analyze_impact(nodes, edges, 3, "unavailable")
     assert {item.node_id for item in result} == {1, 2}
-    assert result[0].path_to_failure in ([3, 2], [3, 2, 1])
+    assert [2, 3] in [item.path_to_failure for item in result]
+    assert [1, 2, 3] in [item.path_to_failure for item in result]
 
 
 def test_unrelated_nodes_are_not_impacted():
