@@ -174,6 +174,8 @@ def create_topology_snapshot(session: Session, tenant_id: str, actor: str) -> To
                 "name": node.name,
                 "kind": node.kind,
                 "criticality": node.criticality,
+                "capacity_units": node.capacity_units,
+                "current_load_units": node.current_load_units,
                 "description": node.description,
                 "created_at": node.created_at.isoformat(),
             }
