@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 
 import httpx
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
+from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -35,18 +35,35 @@ from oracle_api.schemas import (
     TelemetryCreate,
     TelemetryRead,
 )
+from oracle_api.security import Principal, get_principal, require_roles
+
+
+DbSession = Annotated[Session, Depends(get_session)]
+CurrentPrincipal = Annotated[Principal, Depends(get_principal)]
+
+
+def resolve_tenant(principal: CurrentPrincipal) -> str:
+    return principal.tenant_id
+
+
+TenantId = Annotated[str, Depends(resolve_tenant)]
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    if settings.oracle_env.lower() in {"production", "prod"} and not settings.api_keys.strip():
+        raise RuntimeError("ORACLE_API_KEYS must be configured in production.")
     Base.metadata.create_all(bind=engine)
     yield
 
 
 app = FastAPI(
     title="ORACLE Digital Twin Intelligence API",
-    version="0.2.0",
-    description="Explainable infrastructure topology, telemetry and failure-impact simulation.",
+    version="0.3.0",
+    description=(
+        "Tenant-scoped infrastructure topology, deterministic impact simulation, "
+        "telemetry, audit events and optional AI assistance."
+    ),
     lifespan=lifespan,
 )
 app.add_middleware(
@@ -58,23 +75,6 @@ app.add_middleware(
 )
 
 
-def resolve_tenant(x_tenant_id: str = Header(default="default", alias="X-Tenant-ID")) -> str:
-    tenant = x_tenant_id.strip()
-    if not tenant or len(tenant) > 120:
-        raise HTTPException(status_code=400, detail="Invalid tenant identifier.")
-    return tenant
-
-
-DbSession = Annotated[Session, Depends(get_session)]
-TenantId = Annotated[str, Depends(resolve_tenant)]
-
-
-def require_ingestion_key(x_api_key: str | None = Header(default=None, alias="X-API-Key")) -> None:
-    expected = settings.ingestion_api_key
-    if expected and x_api_key != expected:
-        raise HTTPException(status_code=401, detail="Invalid or missing ingestion API key.")
-
-
 def record_audit(
     session: Session,
     tenant_id: str,
@@ -82,11 +82,12 @@ def record_audit(
     resource_type: str,
     resource_id: str = "",
     details: dict | None = None,
+    actor: str = "api",
 ) -> None:
     session.add(
         AuditEvent(
             tenant_id=tenant_id,
-            actor="api",
+            actor=actor,
             action=action,
             resource_type=resource_type,
             resource_id=str(resource_id),
@@ -104,69 +105,117 @@ def health():
     f"{settings.api_prefix}/nodes",
     response_model=NodeRead,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_roles("operator", "admin"))],
 )
 def create_node(
     payload: NodeCreate,
-    tenant_id: TenantId,
+    principal: CurrentPrincipal,
     session: DbSession,
 ):
-    node = InfrastructureNode(**payload.model_dump())
+    node = InfrastructureNode(tenant_id=principal.tenant_id, **payload.model_dump())
     session.add(node)
     try:
         session.flush()
-        record_audit(session, tenant_id, "node.created", "node", node.id, {"name": node.name})
+        record_audit(
+            session, principal.tenant_id, "node.created", "node", node.id,
+            {"name": node.name}, actor=principal.actor,
+        )
         session.commit()
     except IntegrityError as exc:
         session.rollback()
-        raise HTTPException(status_code=409, detail="A node with this name already exists.") from exc
+        raise HTTPException(
+            status_code=409, detail="A node with this name already exists in this tenant."
+        ) from exc
     session.refresh(node)
     return node
 
 
-@app.get(f"{settings.api_prefix}/nodes", response_model=list[NodeRead])
-def list_nodes(session: DbSession):
-    return list(session.scalars(select(InfrastructureNode).order_by(InfrastructureNode.id)))
+@app.get(
+    f"{settings.api_prefix}/nodes",
+    response_model=list[NodeRead],
+    dependencies=[Depends(require_roles("viewer", "operator", "admin", "ingestor"))],
+)
+def list_nodes(tenant_id: TenantId, session: DbSession):
+    query = select(InfrastructureNode).where(
+        InfrastructureNode.tenant_id == tenant_id
+    ).order_by(InfrastructureNode.id)
+    return list(session.scalars(query))
 
 
 @app.post(
     f"{settings.api_prefix}/edges",
     response_model=EdgeRead,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_roles("operator", "admin"))],
 )
 def create_edge(
     payload: EdgeCreate,
-    tenant_id: TenantId,
+    principal: CurrentPrincipal,
     session: DbSession,
 ):
-    source = session.get(InfrastructureNode, payload.source_id)
-    target = session.get(InfrastructureNode, payload.target_id)
+    source = session.scalar(
+        select(InfrastructureNode).where(
+            InfrastructureNode.id == payload.source_id,
+            InfrastructureNode.tenant_id == principal.tenant_id,
+        )
+    )
+    target = session.scalar(
+        select(InfrastructureNode).where(
+            InfrastructureNode.id == payload.target_id,
+            InfrastructureNode.tenant_id == principal.tenant_id,
+        )
+    )
     if source is None or target is None:
-        raise HTTPException(status_code=404, detail="Both source and target nodes must exist.")
-    edge = DependencyEdge(**payload.model_dump())
+        raise HTTPException(status_code=404, detail="Both nodes must exist in the authenticated tenant.")
+    edge = DependencyEdge(tenant_id=principal.tenant_id, **payload.model_dump())
     session.add(edge)
     try:
         session.flush()
         record_audit(
-            session, tenant_id, "dependency.created", "dependency", edge.id,
+            session, principal.tenant_id, "dependency.created", "dependency", edge.id,
             {"source_id": edge.source_id, "target_id": edge.target_id},
+            actor=principal.actor,
         )
         session.commit()
     except IntegrityError as exc:
         session.rollback()
-        raise HTTPException(status_code=409, detail="This dependency already exists.") from exc
+        raise HTTPException(status_code=409, detail="This dependency already exists in this tenant.") from exc
     session.refresh(edge)
     return edge
 
 
-@app.get(f"{settings.api_prefix}/edges", response_model=list[EdgeRead])
-def list_edges(session: DbSession):
-    return list(session.scalars(select(DependencyEdge).order_by(DependencyEdge.id)))
+@app.get(
+    f"{settings.api_prefix}/edges",
+    response_model=list[EdgeRead],
+    dependencies=[Depends(require_roles("viewer", "operator", "admin", "ingestor"))],
+)
+def list_edges(tenant_id: TenantId, session: DbSession):
+    query = select(DependencyEdge).where(
+        DependencyEdge.tenant_id == tenant_id
+    ).order_by(DependencyEdge.id)
+    return list(session.scalars(query))
 
 
-@app.get(f"{settings.api_prefix}/topology", tags=["topology"])
-def get_topology(session: DbSession):
-    nodes = list(session.scalars(select(InfrastructureNode).order_by(InfrastructureNode.id)))
-    edges = list(session.scalars(select(DependencyEdge).order_by(DependencyEdge.id)))
+@app.get(
+    f"{settings.api_prefix}/topology",
+    tags=["topology"],
+    dependencies=[Depends(require_roles("viewer", "operator", "admin", "ingestor"))],
+)
+def get_topology(tenant_id: TenantId, session: DbSession):
+    nodes = list(
+        session.scalars(
+            select(InfrastructureNode)
+            .where(InfrastructureNode.tenant_id == tenant_id)
+            .order_by(InfrastructureNode.id)
+        )
+    )
+    edges = list(
+        session.scalars(
+            select(DependencyEdge)
+            .where(DependencyEdge.tenant_id == tenant_id)
+            .order_by(DependencyEdge.id)
+        )
+    )
     return {
         "nodes": [NodeRead.model_validate(node).model_dump(mode="json") for node in nodes],
         "edges": [EdgeRead.model_validate(edge).model_dump(mode="json") for edge in edges],
@@ -177,22 +226,33 @@ def get_topology(session: DbSession):
     f"{settings.api_prefix}/simulations",
     response_model=SimulationResult,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_roles("operator", "admin"))],
 )
 def run_simulation(
     payload: SimulationCreate,
-    tenant_id: TenantId,
+    principal: CurrentPrincipal,
     session: DbSession,
 ):
-    if session.get(InfrastructureNode, payload.failed_node_id) is None:
-        raise HTTPException(status_code=404, detail="Failed node was not found.")
+    failed_node = session.scalar(
+        select(InfrastructureNode).where(
+            InfrastructureNode.id == payload.failed_node_id,
+            InfrastructureNode.tenant_id == principal.tenant_id,
+        )
+    )
+    if failed_node is None:
+        raise HTTPException(status_code=404, detail="Failed node was not found in this tenant.")
 
     nodes = [
         {"id": n.id, "name": n.name, "kind": n.kind, "criticality": n.criticality}
-        for n in session.scalars(select(InfrastructureNode))
+        for n in session.scalars(
+            select(InfrastructureNode).where(InfrastructureNode.tenant_id == principal.tenant_id)
+        )
     ]
     edges = [
         {"source_id": e.source_id, "target_id": e.target_id, "criticality": e.criticality}
-        for e in session.scalars(select(DependencyEdge))
+        for e in session.scalars(
+            select(DependencyEdge).where(DependencyEdge.tenant_id == principal.tenant_id)
+        )
     ]
     impacted = analyze_impact(nodes, edges, payload.failed_node_id, payload.failure_mode)
     result = SimulationResult(
@@ -203,6 +263,7 @@ def run_simulation(
         methodology="Reverse dependency traversal; criticality-weighted, hop-decayed deterministic score.",
     )
     record = SimulationRecord(
+        tenant_id=principal.tenant_id,
         failed_node_id=payload.failed_node_id,
         failure_mode=payload.failure_mode,
         result_json=result.model_dump_json(),
@@ -210,18 +271,28 @@ def run_simulation(
     session.add(record)
     session.flush()
     record_audit(
-        session, tenant_id, "simulation.completed", "simulation", record.id,
+        session, principal.tenant_id, "simulation.completed", "simulation", record.id,
         {"failed_node_id": payload.failed_node_id, "failure_mode": payload.failure_mode,
          "total_impacted": len(impacted)},
+        actor=principal.actor,
     )
     session.commit()
     session.refresh(record)
     return result.model_copy(update={"simulation_id": record.id})
 
 
-@app.get(f"{settings.api_prefix}/simulations/{{simulation_id}}", response_model=SimulationResult)
-def get_simulation(simulation_id: int, session: DbSession):
-    record = session.get(SimulationRecord, simulation_id)
+@app.get(
+    f"{settings.api_prefix}/simulations/{{simulation_id}}",
+    response_model=SimulationResult,
+    dependencies=[Depends(require_roles("viewer", "operator", "admin", "ingestor"))],
+)
+def get_simulation(simulation_id: int, tenant_id: TenantId, session: DbSession):
+    record = session.scalar(
+        select(SimulationRecord).where(
+            SimulationRecord.id == simulation_id,
+            SimulationRecord.tenant_id == tenant_id,
+        )
+    )
     if record is None:
         raise HTTPException(status_code=404, detail="Simulation was not found.")
     data = json.loads(record.result_json)
@@ -233,18 +304,24 @@ def get_simulation(simulation_id: int, session: DbSession):
     f"{settings.api_prefix}/telemetry",
     response_model=TelemetryRead,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_ingestion_key)],
+    dependencies=[Depends(require_roles("ingestor", "admin"))],
     tags=["observability"],
 )
 def ingest_telemetry(
     payload: TelemetryCreate,
-    tenant_id: TenantId,
+    principal: CurrentPrincipal,
     session: DbSession,
 ):
-    if session.get(InfrastructureNode, payload.node_id) is None:
-        raise HTTPException(status_code=404, detail="Telemetry node was not found.")
+    node = session.scalar(
+        select(InfrastructureNode).where(
+            InfrastructureNode.id == payload.node_id,
+            InfrastructureNode.tenant_id == principal.tenant_id,
+        )
+    )
+    if node is None:
+        raise HTTPException(status_code=404, detail="Telemetry node was not found in this tenant.")
     sample = TelemetrySample(
-        tenant_id=tenant_id,
+        tenant_id=principal.tenant_id,
         node_id=payload.node_id,
         metric=payload.metric,
         value=payload.value,
@@ -254,15 +331,21 @@ def ingest_telemetry(
     session.add(sample)
     session.flush()
     record_audit(
-        session, tenant_id, "telemetry.ingested", "telemetry", sample.id,
+        session, principal.tenant_id, "telemetry.ingested", "telemetry", sample.id,
         {"node_id": sample.node_id, "metric": sample.metric},
+        actor=principal.actor,
     )
     session.commit()
     session.refresh(sample)
     return sample
 
 
-@app.get(f"{settings.api_prefix}/telemetry", response_model=list[TelemetryRead], tags=["observability"])
+@app.get(
+    f"{settings.api_prefix}/telemetry",
+    response_model=list[TelemetryRead],
+    tags=["observability"],
+    dependencies=[Depends(require_roles("viewer", "operator", "admin", "ingestor"))],
+)
 def list_telemetry(
     tenant_id: TenantId,
     session: DbSession,
@@ -279,7 +362,12 @@ def list_telemetry(
     return list(session.scalars(query))
 
 
-@app.get(f"{settings.api_prefix}/audit", response_model=list[AuditEventRead], tags=["governance"])
+@app.get(
+    f"{settings.api_prefix}/audit",
+    response_model=list[AuditEventRead],
+    tags=["governance"],
+    dependencies=[Depends(require_roles("admin"))],
+)
 def list_audit_events(
     tenant_id: TenantId,
     session: DbSession,
@@ -293,32 +381,37 @@ def list_audit_events(
     return list(session.scalars(query))
 
 
-
 @app.post(
     f"{settings.api_prefix}/scenarios/compare",
     response_model=ScenarioCompareResult,
     tags=["scenarios"],
+    dependencies=[Depends(require_roles("operator", "admin"))],
 )
 def compare_scenarios(
     payload: ScenarioCompareCreate,
-    tenant_id: TenantId,
+    principal: CurrentPrincipal,
     session: DbSession,
 ):
+    tenant_id = principal.tenant_id
     nodes = [
         {"id": n.id, "name": n.name, "kind": n.kind, "criticality": n.criticality}
-        for n in session.scalars(select(InfrastructureNode))
+        for n in session.scalars(
+            select(InfrastructureNode).where(InfrastructureNode.tenant_id == tenant_id)
+        )
     ]
     node_ids = {node["id"] for node in nodes}
     for scenario in (payload.scenario_a, payload.scenario_b):
         if scenario.failed_node_id not in node_ids:
             raise HTTPException(
                 status_code=404,
-                detail=f"Scenario node {scenario.failed_node_id} was not found.",
+                detail=f"Scenario node {scenario.failed_node_id} was not found in this tenant.",
             )
 
     edges = [
         {"source_id": e.source_id, "target_id": e.target_id, "criticality": e.criticality}
-        for e in session.scalars(select(DependencyEdge))
+        for e in session.scalars(
+            select(DependencyEdge).where(DependencyEdge.tenant_id == tenant_id)
+        )
     ]
 
     def evaluate(spec):
@@ -352,17 +445,14 @@ def compare_scenarios(
         for node_id in sorted(ids_a | ids_b)
     ]
     record_audit(
-        session,
-        tenant_id,
-        "scenario.compared",
-        "scenario",
-        "",
+        session, tenant_id, "scenario.compared", "scenario", "",
         {
             "scenario_a_failed_node_id": payload.scenario_a.failed_node_id,
             "scenario_b_failed_node_id": payload.scenario_b.failed_node_id,
             "scenario_a_impacted": len(ids_a),
             "scenario_b_impacted": len(ids_b),
         },
+        actor=principal.actor,
     )
     session.commit()
     return ScenarioCompareResult(
@@ -375,15 +465,15 @@ def compare_scenarios(
     )
 
 
-
 @app.post(
     f"{settings.api_prefix}/ai/explain",
     response_model=AIExplainResponse,
     tags=["ai-assistance"],
+    dependencies=[Depends(require_roles("operator", "admin"))],
 )
 def explain_simulation_with_ai(
     payload: AIExplainRequest,
-    tenant_id: TenantId,
+    principal: CurrentPrincipal,
     session: DbSession,
 ):
     if not settings.ai_data_sharing_enabled:
@@ -397,11 +487,21 @@ def explain_simulation_with_ai(
             detail="DeepSeek is not configured. Set DEEPSEEK_API_KEY on the API server.",
         )
 
-    record = session.get(SimulationRecord, payload.simulation_id)
+    record = session.scalar(
+        select(SimulationRecord).where(
+            SimulationRecord.id == payload.simulation_id,
+            SimulationRecord.tenant_id == principal.tenant_id,
+        )
+    )
     if record is None:
         raise HTTPException(status_code=404, detail="Simulation was not found.")
     simulation_data = json.loads(record.result_json)
-    failed_node = session.get(InfrastructureNode, record.failed_node_id)
+    failed_node = session.scalar(
+        select(InfrastructureNode).where(
+            InfrastructureNode.id == record.failed_node_id,
+            InfrastructureNode.tenant_id == principal.tenant_id,
+        )
+    )
     prompt_data = {
         "failed_node": {
             "id": record.failed_node_id,
@@ -468,11 +568,12 @@ def explain_simulation_with_ai(
 
     record_audit(
         session,
-        tenant_id,
+        principal.tenant_id,
         "ai.explanation.generated",
         "simulation",
         record.id,
         {"provider": "deepseek", "model": settings.deepseek_model},
+        actor=principal.actor,
     )
     session.commit()
     return AIExplainResponse(
