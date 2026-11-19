@@ -16,6 +16,7 @@ O ORACLE representa uma infraestrutura como um grafo direcionado. Os nós repres
 - Métricas HTTP em formato compatível com Prometheus, protegidas pelo papel `admin`, e traces OpenTelemetry opcionais com exportação OTLP.
 - Exportação JSON da auditoria por tenant, restrita ao papel `admin`.
 - Exportação da topologia atual como snapshot JSON pela API.
+- Planejamento de capacidade com carga atual, capacidade nominal e projeção por multiplicador de demanda.
 - Histórico temporal por tenant, com snapshots automáticos após cada criação de componente ou dependência e consulta de versões antigas.
 - Comparação determinística de dois cenários com lista de impactos exclusivos/compartilhados e variação de pontuação.
 - Explicação opcional de simulações via DeepSeek, protegida por opt-in explícito no servidor.
