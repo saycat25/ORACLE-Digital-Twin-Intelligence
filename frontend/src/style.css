@@ -40,3 +40,8 @@ footer{padding:28px 0;color:#66758b;font:10px 'DM Mono',monospace}
 .comparison-summary strong{font-size:24px;color:#e9edf5;margin-right:5px}
 .comparison-line{margin:8px 0;color:#b5c3d4;font-size:12px;line-height:1.6}
 @media(max-width:760px){.compare-form{grid-template-columns:1fr}}
+
+.credential-form{display:flex;gap:7px;align-items:center}
+.credential-form input{width:150px;min-width:0;border:1px solid #34445c;border-radius:8px;background:#0b111c;color:#e9edf5;padding:9px 10px;font:11px Manrope,system-ui,sans-serif}
+.credential-form button{border:1px solid #4b947f;border-radius:8px;background:#183b37;color:#b8f6e4;padding:9px 12px;font:600 10px Manrope,system-ui,sans-serif;cursor:pointer}
+@media(max-width:760px){header{flex-wrap:wrap}.status{margin-left:auto}.credential-form{width:100%;margin-top:8px}.credential-form input{flex:1}}
